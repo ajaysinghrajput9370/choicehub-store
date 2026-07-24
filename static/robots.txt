@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin
+Disallow: /profile
+Disallow: /cart
+Disallow: /checkout
+Disallow: /static/uploads/
+Allow: /
