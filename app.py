@@ -1,12 +1,12 @@
 """
-THE CHOICE HUB – FULL E‑COMMERCE (Google OAuth + Email Password Reset)
+THE CHOICE HUB – FULL E‑COMMERCE (Google OAuth + Password Reset via Resend)
 All features: Customer, Admin, Seller, Cart, Checkout, Coupons, Offers,
 Reviews, Wishlist, Pincode Delivery, Order Tracking, Excel import, etc.
 """
 import os
 import uuid
 import random
-import traceback                           # ← Step 1
+import traceback
 from datetime import datetime, timedelta
 from io import BytesIO
 
@@ -17,9 +17,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
-from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 import requests
+import resend  # ← Resend for email
 
 load_dotenv()  # Local development ke liye
 
@@ -35,16 +35,8 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ---------- MAIL SETUP ----------
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
-app.config["MAIL_TIMEOUT"] = 10            # ← Step 3
-
-mail = Mail(app)
+# ---------- RESEND SETUP ----------
+resend.api_key = os.environ.get("RESEND_API_KEY")  # Render Env से लेगा
 
 # ---------- GOOGLE OAUTH ----------
 oauth = OAuth(app)
@@ -439,7 +431,7 @@ def logout():
     session.pop('referral', None)
     return redirect('/')
 
-# ---------- PASSWORD RESET (FORGOT PASSWORD) ----------
+# ---------- PASSWORD RESET (VIA RESEND) ----------
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -462,19 +454,22 @@ If you did not request this, please ignore this email.
 Regards,
 ChoiceHub Team
 """
-            msg = Message(subject, recipients=[email], body=body)
             try:
-                print("📧 Sending email...")
-                with mail.connect() as conn:        # ← Step 2 (new)
-                    conn.send(msg)
+                print("📧 Sending email via Resend...")
+                resend.Emails.send({
+                    "from": "ChoiceHub <noreply@thechoicehub.store>",
+                    "to": [email],
+                    "subject": subject,
+                    "text": body,
+                })
                 print("✅ Email sent successfully")
                 flash("📧 Password reset link sent successfully.")
             except Exception as e:
                 print("=" * 80)
-                print("MAIL ERROR")
-                traceback.print_exc()               # ← Step 2
+                print("RESEND ERROR")
+                traceback.print_exc()
                 print("=" * 80)
-                flash("Email sending failed.")
+                flash("❌ Email sending failed. Please try again later.")
         else:
             flash('❌ No account found with that email.')
         return redirect('/forgot-password')
