@@ -297,6 +297,31 @@ def load_user(user_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def upload_image(file):
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        unique_name = f"{uuid.uuid4().hex}_{filename}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
+        return unique_name
+    return None
+
+def download_and_save_image(url):
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            original = url.split('/')[-1].split('?')[0]
+            ext = original.rsplit('.', 1)[1].lower() if '.' in original else 'jpg'
+            if ext not in ['jpg','jpeg','png','gif','webp']:
+                ext = 'jpg'
+            fname = f"{uuid.uuid4().hex}.{ext}"
+            path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
+            with open(path, 'wb') as f:
+                f.write(resp.content)
+            return fname
+    except:
+        pass
+    return None
+
 def generate_order_number():
     return f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
 
@@ -969,7 +994,6 @@ def admin_dashboard():
 def admin_add_product():
     if not is_admin_user():
         return "Access Denied", 403
-    # ... existing product creation code ...
     name = request.form.get('name')
     slug = request.form.get('slug') or name.lower().replace(' ', '-')
     if Product.query.filter_by(slug=slug).first():
