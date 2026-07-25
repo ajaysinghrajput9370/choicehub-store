@@ -243,7 +243,7 @@ class Banner(db.Model):
     position = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
 
-# ---------- DATABASE INIT (NO DEMO DATA, NO HARDCODED ADMIN) ----------
+# ---------- DATABASE INIT (ADMIN CREATION VIA ENV) ----------
 with app.app_context():
     db.create_all()
     # Ensure images column exists (legacy)
@@ -265,7 +265,29 @@ with app.app_context():
     except:
         pass
 
-    # ✅ HARDCODED ADMIN REMOVED – Admin will be created via environment variables / create_admin.py
+    # ✅ Admin creation using Environment Variables (NO hardcoded defaults)
+    admin_phone = os.environ.get('ADMIN_PHONE')
+    admin_password = os.environ.get('ADMIN_PASSWORD')
+    admin_email = os.environ.get('ADMIN_EMAIL')
+
+    if admin_phone and admin_password and admin_email:
+        existing_admin = User.query.filter_by(role='admin').first()
+        if not existing_admin:
+            admin = User(
+                name='Super Admin',
+                phone=admin_phone,
+                email=admin_email,
+                password_hash=generate_password_hash(admin_password),
+                role='admin',
+                referral_code='ADMIN001'
+            )
+            db.session.add(admin)
+            db.session.commit()
+            print(f"✅ Admin created from ENV with phone: {admin_phone}")
+        else:
+            print(f"ℹ️ Admin already exists (phone: {existing_admin.phone})")
+    else:
+        print("ℹ️ Admin not created: ADMIN_PHONE, ADMIN_PASSWORD, ADMIN_EMAIL not set in environment.")
 
 @login_manager.user_loader
 def load_user(user_id):
