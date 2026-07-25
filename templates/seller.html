@@ -1,34 +1,212 @@
 {% extends "base.html" %}
-{% block title %}Seller Panel{% endblock %}
+{% block title %}Seller Dashboard{% endblock %}
 {% block content %}
-<div class="seller-panel">
-    <h1>🤝 Seller Dashboard</h1>
-    <div class="seller-info">
-        <p><b>{{ seller.user.name }}</b> – {{ seller.store_name }}</p>
-        <p>Commission: {{ seller.commission_rate }}% | Earned: ₹{{ seller.total_earned }}</p>
+<div class="seller-dashboard">
+    <div class="dashboard-header">
+        <h1>🤝 Seller Dashboard</h1>
+        <div class="seller-badge">{{ seller.store_name }}</div>
     </div>
-    <div class="stats">
-        <div class="stat">My Products: {{ products|length }}</div>
-        <div class="stat">Orders: {{ orders|length }}</div>
+
+    <!-- Seller Info -->
+    <div class="seller-info-card">
+        <div class="seller-avatar">{{ seller.user.name[0] | upper }}</div>
+        <div>
+            <h3>{{ seller.user.name }}</h3>
+            <p><i class="fas fa-store"></i> {{ seller.store_name }}</p>
+            <p><i class="fas fa-percent"></i> Commission: {{ seller.commission_rate }}%</p>
+        </div>
     </div>
-    <div class="referral-box">
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-number">{{ referral_users|length }}</div>
+            <div class="stat-label">Referred Users</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🛍️</div>
+            <div class="stat-number">{{ referral_orders|length }}</div>
+            <div class="stat-label">Referral Orders</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-number">₹{{ seller.total_earned }}</div>
+            <div class="stat-label">Total Earned</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-number">{{ products|length }}</div>
+            <div class="stat-label">My Products</div>
+        </div>
+    </div>
+
+    <!-- Referral Link Section -->
+    <div class="referral-section">
         <h3>🔗 Your Referral Link</h3>
-        <code>{{ ref_link }}</code>
-        <p>Share this link – you earn commission on sales!</p>
+        <div class="referral-link-box">
+            <input type="text" id="referralLink" value="{{ ref_link }}" readonly>
+            <div class="share-buttons">
+                <button onclick="copyLink()" class="btn btn-primary"><i class="fas fa-copy"></i> Copy</button>
+                <a href="https://wa.me/?text={{ ref_link | urlencode }}" target="_blank" class="btn btn-success"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+                <a href="mailto:?subject=Check%20out%20ChoiceHub&body={{ ref_link | urlencode }}" class="btn btn-outline"><i class="fas fa-envelope"></i> Email</a>
+            </div>
+        </div>
+        <p class="referral-note"><i class="fas fa-info-circle"></i> Share this link – you earn {{ seller.commission_rate }}% commission on every purchase!</p>
     </div>
-    <hr>
-    <h3>📦 My Products</h3>
-    {% for p in products %}
-    <div class="admin-item">
-        <span>{{ p.name }} – ₹{{ p.selling_price }} (Stock: {{ p.stock }})</span>
+
+    <!-- Referred Users -->
+    <div class="referral-users-section">
+        <h3>👥 Users Referred by You</h3>
+        {% if referral_users %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Joined</th>
+                        <th>Orders</th>
+                        <th>Total Spent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in referral_users %}
+                    <tr>
+                        <td>{{ u.name }}</td>
+                        <td>{{ u.phone or '-' }}</td>
+                        <td>{{ u.created_at.strftime('%d %b %Y') }}</td>
+                        <td>{{ u.orders|length }}</td>
+                        <td>₹{{ u.orders|sum(attribute='net_amount') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No users referred yet. Share your link to start earning!</p>
+        {% endif %}
     </div>
-    {% endfor %}
-    <hr>
-    <h3>📋 Orders</h3>
-    {% for o in orders %}
-    <div class="admin-item">
-        <span>#{{ o.order_number }} – ₹{{ o.net_amount }} – {{ o.status }}</span>
+
+    <!-- My Products -->
+    <div class="products-section">
+        <h3>📦 My Products</h3>
+        {% if products %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in products %}
+                    <tr>
+                        <td><strong>{{ p.name }}</strong></td>
+                        <td>₹{{ p.selling_price }}</td>
+                        <td>{{ p.stock }}</td>
+                        <td>{{ p.category_ref.name if p.category_ref else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No products listed yet.</p>
+        {% endif %}
     </div>
-    {% endfor %}
+
+    <!-- Orders -->
+    <div class="orders-section">
+        <h3>📋 Orders</h3>
+        {% if orders %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Commission</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in orders %}
+                    <tr>
+                        <td>{{ o.order_number }}</td>
+                        <td>{{ o.customer.name }}</td>
+                        <td>₹{{ o.net_amount }}</td>
+                        <td><span class="status-badge {{ o.status.lower() }}">{{ o.status }}</span></td>
+                        <td>₹{{ (o.net_amount * seller.commission_rate / 100) | round(2) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No orders yet.</p>
+        {% endif %}
+    </div>
 </div>
+
+<!-- Custom Styles -->
+<style>
+    .seller-dashboard { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .dashboard-header h1 { font-size: 1.8rem; font-weight: 800; }
+    .seller-badge { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #fff; padding: 6px 16px; border-radius: 30px; font-weight: 600; }
+    .seller-info-card { display: flex; align-items: center; gap: 16px; background: var(--white); padding: 16px 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid rgba(212,175,55,0.06); }
+    .seller-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; text-transform: uppercase; flex-shrink: 0; }
+    .seller-info-card h3 { font-size: 1.1rem; margin-bottom: 2px; }
+    .seller-info-card p { color: var(--secondary); font-size: 0.9rem; margin: 2px 0; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--white); padding: 16px; border-radius: var(--radius-sm); text-align: center; box-shadow: var(--shadow); border: 1px solid rgba(212,175,55,0.06); transition: var(--transition); }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+    .stat-icon { font-size: 2rem; }
+    .stat-number { font-size: 1.6rem; font-weight: 700; color: var(--gold); }
+    .stat-label { color: var(--secondary); font-size: 0.85rem; font-weight: 500; }
+    .referral-section { background: var(--white); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; border: 1px solid rgba(212,175,55,0.06); }
+    .referral-section h3 { margin-bottom: 12px; }
+    .referral-link-box { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .referral-link-box input { flex: 1; min-width: 200px; padding: 10px 14px; border: 2px solid var(--gray); border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--light-bg); color: var(--primary); }
+    .share-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .share-buttons .btn { padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; border-radius: 30px; }
+    .btn-success { background: #25d366; color: #fff; border: none; }
+    .btn-success:hover { background: #1da851; color: #fff; transform: translateY(-2px); }
+    .referral-note { margin-top: 10px; color: var(--secondary); font-size: 0.9rem; }
+    .referral-note i { color: var(--gold); }
+    .referral-users-section, .products-section, .orders-section { background: var(--white); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid rgba(212,175,55,0.06); }
+    .referral-users-section h3, .products-section h3, .orders-section h3 { margin-bottom: 12px; }
+    .empty-state { color: var(--secondary); padding: 20px; text-align: center; font-size: 0.95rem; }
+    .table-responsive { overflow-x: auto; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .admin-table th { background: var(--gray); padding: 8px 12px; text-align: left; font-weight: 600; }
+    .admin-table td { padding: 8px 12px; border-bottom: 1px solid var(--gray); }
+    .admin-table tr:hover td { background: rgba(212,175,55,0.04); }
+    .status-badge { display: inline-block; padding: 2px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
+    .status-badge.placed { background: #fef3c7; color: #92400e; }
+    .status-badge.confirmed { background: #dbeafe; color: #1e40af; }
+    .status-badge.shipped { background: #d1fae5; color: #065f46; }
+    .status-badge.delivered { background: #d1fae5; color: #065f46; }
+    .status-badge.cancelled { background: #fee2e2; color: #991b1b; }
+    body.dark .seller-info-card, body.dark .stat-card, body.dark .referral-section, body.dark .referral-users-section, body.dark .products-section, body.dark .orders-section { background: #1a1f2e; border-color: #2a3040; color: #f1f5f9; }
+    body.dark .referral-link-box input { background: #2a3040; color: #f1f5f9; border-color: #3a4050; }
+    body.dark .admin-table th { background: #2a3040; color: #f1f5f9; }
+    body.dark .admin-table td { border-color: #2a3040; color: #f1f5f9; }
+    body.dark .admin-table tr:hover td { background: rgba(212,175,55,0.08); }
+    @media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr 1fr; } .referral-link-box { flex-direction: column; } .share-buttons { justify-content: center; } }
+</style>
+
+<script>
+function copyLink() {
+    const input = document.getElementById('referralLink');
+    input.select();
+    document.execCommand('copy');
+    alert('✅ Referral link copied to clipboard!');
+}
+</script>
 {% endblock %}
