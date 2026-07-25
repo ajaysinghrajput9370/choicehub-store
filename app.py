@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from itsdangerous import URLSafeTimedSerializer
 import requests
-import resend  # ← Resend for email
+import resend  # Resend for email
 
 load_dotenv()  # Local development ke liye
 
@@ -401,11 +401,11 @@ def register():
             referral_code=f"REF_{uuid.uuid4().hex[:8].upper()}"
         )
         db.session.add(user)
-db.session.commit()
+        db.session.commit()
 
-login_user(user)          # User automatically login
-flash('Welcome to ChoiceHub!')
-return redirect('/')      # या /profile
+        login_user(user)  # Auto login after registration
+        flash('Welcome to ChoiceHub!')
+        return redirect('/')  # या /profile
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
