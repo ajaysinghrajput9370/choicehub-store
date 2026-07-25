@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from itsdangerous import URLSafeTimedSerializer
 import requests
-import resend  # Resend for email
+import resend
 
 load_dotenv()  # Local development ke liye
 
@@ -36,7 +36,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ---------- RESEND SETUP ----------
-resend.api_key = os.environ.get("RESEND_API_KEY")  # Render Env से लेगा
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
 # ---------- GOOGLE OAUTH ----------
 oauth = OAuth(app)
@@ -243,7 +243,7 @@ class Banner(db.Model):
     position = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
 
-# ---------- DATABASE INIT (NO DEMO DATA) ----------
+# ---------- DATABASE INIT (NO DEMO DATA, NO HARDCODED ADMIN) ----------
 with app.app_context():
     db.create_all()
     # Ensure images column exists (legacy)
@@ -265,19 +265,7 @@ with app.app_context():
     except:
         pass
 
-    # ONLY create admin if NONE exists (no default categories/coupons/sellers)
-    if not User.query.filter_by(role='admin').first():
-        admin = User(
-            name='Super Admin',
-            phone='9999999999',
-            email='admin@choicehub.com',
-            password_hash=generate_password_hash('admin123'),
-            role='admin',
-            referral_code='ADMIN001'
-        )
-        db.session.add(admin)
-        db.session.commit()
-        print("✅ Admin user created (login: 9999999999 / admin123)")
+    # ✅ HARDCODED ADMIN REMOVED – Admin will be created via environment variables / create_admin.py
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -405,7 +393,7 @@ def register():
 
         login_user(user)  # Auto login after registration
         flash('Welcome to ChoiceHub!')
-        return redirect('/')  # या /profile
+        return redirect('/')
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
