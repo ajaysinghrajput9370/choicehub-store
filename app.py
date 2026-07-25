@@ -410,6 +410,9 @@ def register():
             role='customer',
             referral_code=f"REF_{uuid.uuid4().hex[:8].upper()}"
         )
+        # If referral code is in session, save it (for seller referral)
+        if session.get('referral'):
+            user.referral_code = session.get('referral')
         db.session.add(user)
         db.session.commit()
 
@@ -788,7 +791,7 @@ def checkout():
                 order_number=order_num,
                 user_id=current_user.id,
                 coupon_id=int(coupon_id) if coupon_id else None,
-                referral_used=session.get('referral'),
+                referral_used=session.get('referral'),  # Save referral code from session
                 total_amount=total,
                 discount_amount=discount,
                 shipping_charge=0.0,
@@ -1373,7 +1376,7 @@ def buy_now(product_id):
     flash('Product added to cart. Proceed to checkout.')
     return redirect('/checkout')
 
-# ---------- SELLER PANEL ----------
+# ---------- SELLER PANEL (UPDATED WITH REFERRAL STATS) ----------
 @app.route('/seller')
 @login_required
 def seller_dashboard():
@@ -1388,7 +1391,20 @@ def seller_dashboard():
     order_ids = [oi.order_id for oi in order_items]
     orders = Order.query.filter(Order.id.in_(order_ids)).order_by(Order.created_at.desc()).all() if order_ids else []
     ref_link = f"{request.host_url}?ref={current_user.referral_code}"
-    return render_template('seller.html', seller=seller, products=products, orders=orders, ref_link=ref_link)
+    
+    # ---------- REFERRAL STATS ----------
+    # Users who registered using this seller's referral code
+    referral_users = User.query.filter_by(referral_code=current_user.referral_code).all()
+    # Orders placed by those users (or any order that used this referral code)
+    referral_orders = Order.query.filter_by(referral_used=current_user.referral_code).all()
+    
+    return render_template('seller.html',
+                           seller=seller,
+                           products=products,
+                           orders=orders,
+                           ref_link=ref_link,
+                           referral_users=referral_users,
+                           referral_orders=referral_orders)
 
 # ---------- ERROR HANDLING ----------
 @app.errorhandler(404)
