@@ -21,7 +21,7 @@ from itsdangerous import URLSafeTimedSerializer
 import requests
 import resend
 
-load_dotenv()  # Local development ke liye
+load_dotenv()
 
 # ---------- APP SETUP ----------
 app = Flask(__name__)
@@ -514,10 +514,7 @@ def reset_password(token):
         return redirect('/login')
     return render_template('reset_password.html', token=token)
 
-# ---------- ROUTES (YOUR EXISTING CODE) ----------
-# (All your existing routes go here – index, product, search, cart, checkout, profile, admin, etc.)
-# I am pasting them below for completeness, but you can keep your own.
-
+# ---------- ROUTES ----------
 @app.route('/')
 def index():
     ref = request.args.get('ref')
@@ -791,7 +788,7 @@ def checkout():
                 order_number=order_num,
                 user_id=current_user.id,
                 coupon_id=int(coupon_id) if coupon_id else None,
-                referral_used=session.get('referral'),  # Save referral code from session
+                referral_used=session.get('referral'),
                 total_amount=total,
                 discount_amount=discount,
                 shipping_charge=0.0,
@@ -921,11 +918,24 @@ def add_review(product_id):
     flash('Review submitted!')
     return redirect('/product/' + Product.query.get(product_id).slug)
 
-# ---------- ADMIN PANEL (UPDATED WITH TAB PERSISTENCY) ----------
+# ========== ADMIN ROUTES WITH AUTO-UPGRADE FIX ==========
+# Helper to ensure the current user is admin (and upgrade if phone matches ADMIN_PHONE)
+def is_admin_user():
+    if current_user.role == 'admin':
+        return True
+    # If not, check if phone matches ADMIN_PHONE env var
+    admin_phone = os.environ.get('ADMIN_PHONE')
+    if admin_phone and current_user.phone == admin_phone:
+        # Upgrade to admin
+        current_user.role = 'admin'
+        db.session.commit()
+        return True
+    return False
+
 @app.route('/admin')
 @login_required
 def admin_dashboard():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     products = Product.query.all()
     orders = Order.query.all()
@@ -957,8 +967,9 @@ def admin_dashboard():
 @app.route('/admin/add-product', methods=['POST'])
 @login_required
 def admin_add_product():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
+    # ... existing product creation code ...
     name = request.form.get('name')
     slug = request.form.get('slug') or name.lower().replace(' ', '-')
     if Product.query.filter_by(slug=slug).first():
@@ -1024,7 +1035,7 @@ def admin_add_product():
 @app.route('/admin/edit-product/<int:id>', methods=['GET', 'POST'])
 @login_required
 def admin_edit_product(id):
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     product = Product.query.get_or_404(id)
     if request.method == 'POST':
@@ -1067,7 +1078,7 @@ def admin_edit_product(id):
 @app.route('/admin/delete-product/<int:id>')
 @login_required
 def admin_delete_product(id):
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     product = Product.query.get_or_404(id)
     for img in product.image_list():
@@ -1082,7 +1093,7 @@ def admin_delete_product(id):
 @app.route('/admin/update-order/<int:id>/<status>')
 @login_required
 def admin_update_order(id, status):
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     order = Order.query.get_or_404(id)
     order.status = status
@@ -1092,7 +1103,7 @@ def admin_update_order(id, status):
 @app.route('/admin/add-coupon', methods=['POST'])
 @login_required
 def admin_add_coupon():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     code = request.form.get('code').upper()
     dtype = request.form.get('discount_type')
@@ -1118,7 +1129,7 @@ def admin_add_coupon():
 @app.route('/admin/delete-coupon/<int:id>')
 @login_required
 def admin_delete_coupon(id):
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     coupon = Coupon.query.get_or_404(id)
     db.session.delete(coupon)
@@ -1128,7 +1139,7 @@ def admin_delete_coupon(id):
 @app.route('/admin/create-seller', methods=['POST'])
 @login_required
 def admin_create_seller():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     name = request.form.get('name')
     phone = request.form.get('phone')
@@ -1160,7 +1171,7 @@ def admin_create_seller():
 @app.route('/admin/import-excel', methods=['POST'])
 @login_required
 def admin_import_excel():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     file = request.files.get('excel_file')
     if not file or not file.filename.endswith('.xlsx'):
@@ -1268,7 +1279,7 @@ def admin_import_excel():
 @app.route('/admin/download-template')
 @login_required
 def download_template():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     from openpyxl import Workbook
     wb = Workbook()
@@ -1302,7 +1313,7 @@ def download_template():
 @app.route('/admin/add-category', methods=['POST'])
 @login_required
 def admin_add_category():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     name = request.form.get('name')
     slug = name.lower().replace(' ', '-')
@@ -1318,7 +1329,7 @@ def admin_add_category():
 @app.route('/admin/delete-category/<int:id>')
 @login_required
 def admin_delete_category(id):
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     cat = Category.query.get_or_404(id)
     db.session.delete(cat)
@@ -1328,7 +1339,7 @@ def admin_delete_category(id):
 @app.route('/admin/add-banner', methods=['POST'])
 @login_required
 def admin_add_banner():
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     title = request.form.get('title')
     link = request.form.get('link')
@@ -1346,7 +1357,7 @@ def admin_add_banner():
 @app.route('/admin/delete-banner/<int:id>')
 @login_required
 def admin_delete_banner(id):
-    if current_user.role != 'admin':
+    if not is_admin_user():
         return "Access Denied", 403
     banner = Banner.query.get_or_404(id)
     try:
@@ -1392,10 +1403,8 @@ def seller_dashboard():
     orders = Order.query.filter(Order.id.in_(order_ids)).order_by(Order.created_at.desc()).all() if order_ids else []
     ref_link = f"{request.host_url}?ref={current_user.referral_code}"
     
-    # ---------- REFERRAL STATS ----------
-    # Users who registered using this seller's referral code
+    # Referral users and orders
     referral_users = User.query.filter_by(referral_code=current_user.referral_code).all()
-    # Orders placed by those users (or any order that used this referral code)
     referral_orders = Order.query.filter_by(referral_used=current_user.referral_code).all()
     
     return render_template('seller.html',
