@@ -322,6 +322,18 @@ def download_and_save_image(url):
         pass
     return None
 
+def safe_float(value, default=0.0):
+    try:
+        return float(value) if value not in (None, '') else default
+    except (ValueError, TypeError):
+        return default
+
+def safe_int(value, default=0):
+    try:
+        return int(float(value)) if value not in (None, '') else default
+    except (ValueError, TypeError):
+        return default
+
 def generate_order_number():
     return f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
 
@@ -1226,10 +1238,13 @@ def admin_import_excel():
             if not row or not row[col_map['name']]:
                 continue
             name = str(row[col_map['name']])
-            selling_price = float(row[col_map['selling_price']])
-            mrp = float(row[col_map['mrp']])
-            cost_price = float(row[col_map.get('cost_price', -1)]) if 'cost_price' in col_map and row[col_map['cost_price']] is not None else 0
-            stock = int(row[col_map.get('stock', -1)]) if 'stock' in col_map and row[col_map['stock']] is not None else 0
+            # --- SAFE CONVERSION for all numeric fields ---
+            selling_price = safe_float(row[col_map.get('selling_price', -1)], 0.0)
+            mrp = safe_float(row[col_map.get('mrp', -1)], 0.0)
+            cost_price = safe_float(row[col_map.get('cost_price', -1)], 0.0)
+            stock = safe_int(row[col_map.get('stock', -1)], 0)
+            weight = safe_float(row[col_map.get('weight', -1)], None)
+            # --- text fields ---
             category_name = str(row[col_map.get('category', -1)]) if 'category' in col_map and row[col_map['category']] else ''
             brand = str(row[col_map.get('brand', -1)]) if 'brand' in col_map and row[col_map['brand']] else ''
             sku = str(row[col_map.get('sku', -1)]) if 'sku' in col_map and row[col_map['sku']] else f"SKU-{uuid.uuid4().hex[:8].upper()}"
@@ -1237,7 +1252,6 @@ def admin_import_excel():
             description = str(row[col_map.get('description', -1)]) if 'description' in col_map and row[col_map['description']] else ''
             features = str(row[col_map.get('features', -1)]) if 'features' in col_map and row[col_map['features']] else ''
             specifications = str(row[col_map.get('specifications', -1)]) if 'specifications' in col_map and row[col_map['specifications']] else ''
-            weight = float(row[col_map.get('weight', -1)]) if 'weight' in col_map and row[col_map['weight']] is not None else None
             dimensions = str(row[col_map.get('dimensions', -1)]) if 'dimensions' in col_map and row[col_map['dimensions']] else ''
             material = str(row[col_map.get('material', -1)]) if 'material' in col_map and row[col_map['material']] else ''
             care_instructions = str(row[col_map.get('care_instructions', -1)]) if 'care_instructions' in col_map and row[col_map['care_instructions']] else ''
