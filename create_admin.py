@@ -1,11 +1,10 @@
 import os
-import sys
 from app import app, db, User
 from werkzeug.security import generate_password_hash
 
 def create_admin():
     with app.app_context():
-        # Environment variables se admin credentials लें (Render पर डालें)
+        # Environment variables से admin credentials लें (Render पर डालें)
         admin_phone = os.environ.get('ADMIN_PHONE', '9999999999')
         admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
         admin_email = os.environ.get('ADMIN_EMAIL', 'admin@choicehub.com')
