@@ -85,6 +85,22 @@
       <div>
         <span style="font-size:1.2rem; font-weight:600;">Payable: ₹<span id="display-net">{{ total }}</span></span>
         <span style="color:#64748b; margin-left:12px;">(Cash on Delivery)</span>
+        <!-- Payment Method Selection -->
+<div style="background:#fff; padding:16px 20px; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.04); margin-bottom:16px;">
+    <h4 style="margin-bottom:8px;">💳 Payment Method</h4>
+    <div style="display:flex; flex-wrap:wrap; gap:16px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="radio" name="payment_method" value="COD" checked> Cash on Delivery (COD)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="radio" name="payment_method" value="UPI"> UPI / Google Pay
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="radio" name="payment_method" value="Card"> Credit / Debit Card
+        </label>
+    </div>
+    <p style="font-size:0.8rem; color:#64748b; margin-top:6px;">Select your preferred payment method.</p>
+</div>
       </div>
       <button type="submit" class="btn btn-gold btn-lg">📩 Place Order</button>
     </div>
