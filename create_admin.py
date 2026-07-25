@@ -1,13 +1,20 @@
 import os
+import sys
 from app import app, db, User
 from werkzeug.security import generate_password_hash
 
 def create_admin():
     with app.app_context():
         # Environment variables से admin credentials लें (Render पर डालें)
-        admin_phone = os.environ.get('ADMIN_PHONE', '9999999999')
-        admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
-        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@choicehub.com')
+        admin_phone = os.environ.get('ADMIN_PHONE')
+        admin_password = os.environ.get('ADMIN_PASSWORD')
+        admin_email = os.environ.get('ADMIN_EMAIL')
+
+        # Check if all required env vars are set
+        if not all([admin_phone, admin_password, admin_email]):
+            print("❌ ERROR: ADMIN_PHONE, ADMIN_PASSWORD, and ADMIN_EMAIL must be set in environment variables.")
+            print("   Please set them in Render Dashboard → Environment Variables.")
+            sys.exit(1)
 
         # Check if admin already exists
         existing = User.query.filter_by(role='admin').first()
