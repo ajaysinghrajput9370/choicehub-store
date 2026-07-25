@@ -401,9 +401,11 @@ def register():
             referral_code=f"REF_{uuid.uuid4().hex[:8].upper()}"
         )
         db.session.add(user)
-        db.session.commit()
-        flash('Registration successful! Please login.')
-        return redirect('/login')
+db.session.commit()
+
+login_user(user)          # User automatically login
+flash('Welcome to ChoiceHub!')
+return redirect('/')      # या /profile
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
