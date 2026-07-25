@@ -50,6 +50,8 @@
         <button data-tab="users">👥 Users</button>
         <button data-tab="categories">📂 Categories</button>
         <button data-tab="banners">🖼️ Banners</button>
+        <!-- NEW: Referrals Tab -->
+        <button data-tab="referrals">🔗 Referrals</button>
     </div>
 
     <!-- ========== PRODUCTS TAB ========== -->
@@ -292,11 +294,57 @@
         </div>
     </div>
 
+    <!-- ========== REFERRALS TAB (NEW) ========== -->
+    <div id="tab-referrals" class="tab-content">
+        <div class="admin-section">
+            <h2>🔗 Referral Tracking</h2>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Seller</th>
+                            <th>Store</th>
+                            <th>Referred Users</th>
+                            <th>Referral Orders</th>
+                            <th>Total Revenue</th>
+                            <th>Commission Earned</th>
+                            <th>Commission Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sellers %}
+                        {# Calculate referral users and orders for this seller #}
+                        {% set referred_users = [] %}
+                        {% set referral_orders = [] %}
+                        {% for u in users if u.referral_code == s.user.referral_code %}
+                            {% set _ = referred_users.append(u) %}
+                            {% for o in u.orders if o.referral_used == s.user.referral_code %}
+                                {% set _ = referral_orders.append(o) %}
+                            {% endfor %}
+                        {% endfor %}
+                        <tr>
+                            <td><strong>{{ s.user.name }}</strong></td>
+                            <td>{{ s.store_name }}</td>
+                            <td>{{ referred_users|length }}</td>
+                            <td>{{ referral_orders|length }}</td>
+                            <td>₹{{ referral_orders|sum(attribute='net_amount') }}</td>
+                            <td>₹{{ s.total_earned }}</td>
+                            <td>{{ s.commission_rate }}%</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" style="text-align:center; color:#888;">No sellers found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Floating Add Product Button -->
     <div class="fab" onclick="document.getElementById('addProductModal').style.display='flex'">➕</div>
 
     <!-- ============================================================ -->
-    <!-- ADD PRODUCT MODAL – ALL FIELDS INCLUDED -->
+    <!-- ADD PRODUCT MODAL – WITHOUT DELIVERY TIME (SINGLE MODAL)      -->
     <!-- ============================================================ -->
     <div id="addProductModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width:800px;">
@@ -304,141 +352,24 @@
             <h2 style="margin-bottom:16px;">➕ Add New Product</h2>
             <form method="POST" action="/admin/add-product" enctype="multipart/form-data">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                    <!-- Left column -->
-                    <div>
-                        <label>Name *</label>
-                        <input type="text" name="name" required>
-                    </div>
-                    <div>
-                        <label>Category *</label>
-                        <select name="category_id" required>
-                            {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label>Brand</label>
-                        <input type="text" name="brand">
-                    </div>
-                    <div>
-                        <label>SKU</label>
-                        <input type="text" name="sku" placeholder="Auto">
-                    </div>
-                    <div>
-                        <label>Cost Price</label>
-                        <input type="number" name="cost_price" step="0.01" value="0">
-                    </div>
-                    <div>
-                        <label>Selling Price *</label>
-                        <input type="number" name="selling_price" step="0.01" required>
-                    </div>
-                    <div>
-                        <label>MRP *</label>
-                        <input type="number" name="mrp" step="0.01" required>
-                    </div>
-                    <div>
-                        <label>Stock</label>
-                        <input type="number" name="stock" value="0">
-                    </div>
-                    <div>
-                        <label>Weight (kg)</label>
-                        <input type="number" name="weight" step="0.01">
-                    </div>
-                    <div>
-                        <label>Dimensions</label>
-                        <input type="text" name="dimensions" placeholder="e.g., 10x10x5 cm">
-                    </div>
-                    <div>
-                        <label>Material</label>
-                        <input type="text" name="material">
-                    </div>
-                    <div>
-                        <label>Warranty</label>
-                        <input type="text" name="warranty" placeholder="e.g., 1 year">
-                    </div>
-                    <div>
-                        <label>Return Policy</label>
-                        <input type="text" name="return_policy" placeholder="e.g., 7 days">
-                    </div>
-                    <div>
-                        <label>Delivery Time</label>
-                        <input type="text" name="delivery_time" placeholder="e.g., 2-3 Business Days">
-                    <!-- Add Product Modal (Updated – without delivery_time) -->
-<div id="addProductModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:800px;">
-        <span class="modal-close" onclick="document.getElementById('addProductModal').style.display='none'">&times;</span>
-        <h2 style="margin-bottom:16px;">➕ Add New Product</h2>
-        <form method="POST" action="/admin/add-product" enctype="multipart/form-data">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                <!-- Left column -->
-                <div><label>Name *</label><input type="text" name="name" required></div>
-                <div><label>Category *</label><select name="category_id" required>{% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}</select></div>
-                <div><label>Brand</label><input type="text" name="brand"></div>
-                <div><label>SKU</label><input type="text" name="sku" placeholder="Auto"></div>
-                <div><label>Cost Price</label><input type="number" name="cost_price" step="0.01" value="0"></div>
-                <div><label>Selling Price *</label><input type="number" name="selling_price" step="0.01" required></div>
-                <div><label>MRP *</label><input type="number" name="mrp" step="0.01" required></div>
-                <div><label>Stock</label><input type="number" name="stock" value="0"></div>
-                <div><label>Weight (kg)</label><input type="number" name="weight" step="0.01"></div>
-                <div><label>Dimensions</label><input type="text" name="dimensions" placeholder="e.g., 10x10x5 cm"></div>
-                <div><label>Material</label><input type="text" name="material"></div>
-                <div><label>Warranty</label><input type="text" name="warranty" placeholder="e.g., 1 year"></div>
-                <div><label>Return Policy</label><input type="text" name="return_policy" placeholder="e.g., 7 days"></div>
-                <div><label>Video URL</label><input type="text" name="video_url" placeholder="YouTube link"></div>
-                <div><label>Care Instructions</label><input type="text" name="care_instructions"></div>
-                <!-- delivery_time removed -->
-            </div>
-
-            <!-- Full width fields -->
-            <div style="margin-top:8px;">
-                <label>Short Description</label>
-                <input type="text" name="short_description">
-            </div>
-            <div>
-                <label>Description</label>
-                <textarea name="description" rows="3"></textarea>
-            </div>
-            <div>
-                <label>Features (one per line or comma separated)</label>
-                <textarea name="features" rows="3" placeholder="Feature 1&#10;Feature 2"></textarea>
-            </div>
-            <div>
-                <label>Specifications (key: value per line)</label>
-                <textarea name="specifications" rows="3" placeholder="Weight: 1.2 kg&#10;Color: Gold"></textarea>
-            </div>
-            <div>
-                <label>Images (multiple)</label>
-                <input type="file" name="images" multiple accept="image/*">
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:12px; margin:8px 0;">
-                <label><input type="checkbox" name="is_featured"> Featured</label>
-                <label><input type="checkbox" name="is_bestseller"> Bestseller</label>
-                <label><input type="checkbox" name="is_trending"> Trending</label>
-                <label><input type="checkbox" name="is_new"> New</label>
-                <label><input type="checkbox" name="free_delivery" checked> Free Delivery</label>
-                <label><input type="checkbox" name="cod_available" checked> COD</label>
-            </div>
-            <div>
-                <label>Assign Seller</label>
-                <select name="seller_id">
-                    <option value="">Admin Product</option>
-                    {% for s in sellers %}<option value="{{ s.id }}">{{ s.user.name }}</option>{% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:12px;">➕ Add Product</button>
-        </form>
-    </div>
-</div>
-                    <div>
-                        <label>Video URL</label>
-                        <input type="text" name="video_url" placeholder="YouTube link">
-                    </div>
-                    <div>
-                        <label>Care Instructions</label>
-                        <input type="text" name="care_instructions">
-                    </div>
+                    <div><label>Name *</label><input type="text" name="name" required></div>
+                    <div><label>Category *</label><select name="category_id" required>{% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}</select></div>
+                    <div><label>Brand</label><input type="text" name="brand"></div>
+                    <div><label>SKU</label><input type="text" name="sku" placeholder="Auto"></div>
+                    <div><label>Cost Price</label><input type="number" name="cost_price" step="0.01" value="0"></div>
+                    <div><label>Selling Price *</label><input type="number" name="selling_price" step="0.01" required></div>
+                    <div><label>MRP *</label><input type="number" name="mrp" step="0.01" required></div>
+                    <div><label>Stock</label><input type="number" name="stock" value="0"></div>
+                    <div><label>Weight (kg)</label><input type="number" name="weight" step="0.01"></div>
+                    <div><label>Dimensions</label><input type="text" name="dimensions" placeholder="e.g., 10x10x5 cm"></div>
+                    <div><label>Material</label><input type="text" name="material"></div>
+                    <div><label>Warranty</label><input type="text" name="warranty" placeholder="e.g., 1 year"></div>
+                    <div><label>Return Policy</label><input type="text" name="return_policy" placeholder="e.g., 7 days"></div>
+                    <div><label>Video URL</label><input type="text" name="video_url" placeholder="YouTube link"></div>
+                    <div><label>Care Instructions</label><input type="text" name="care_instructions"></div>
+                    <!-- delivery_time removed -->
                 </div>
 
-                <!-- Full width fields -->
                 <div style="margin-top:8px;">
                     <label>Short Description</label>
                     <input type="text" name="short_description">
@@ -486,7 +417,6 @@
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
         if (tab) {
-            // Activate the correct tab
             document.querySelectorAll('.admin-tabs button').forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.tab === tab) {
@@ -503,11 +433,9 @@
     document.querySelectorAll('.admin-tabs button').forEach(btn => {
         btn.addEventListener('click', function() {
             const tab = this.dataset.tab;
-            // Update URL without reload
             const url = new URL(window.location);
             url.searchParams.set('tab', tab);
             window.history.pushState({}, '', url);
-            // Switch tabs
             document.querySelectorAll('.admin-tabs button').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
