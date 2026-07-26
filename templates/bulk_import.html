@@ -11,6 +11,7 @@
       <div>
         <strong>Prepare Excel</strong>
         <p>Columns: <code>SKU, Name, Selling Price, MRP, Stock, Category</code> (SKU must match image filenames)</p>
+        <a href="/admin/download-bulk-template" class="btn btn-outline" style="padding:10px 20px; font-size:1rem; margin-top:6px;">📥 Download Template</a>
       </div>
     </div>
     <div class="step">
@@ -38,7 +39,7 @@
       <label>📁 ZIP File (images)</label>
       <input type="file" name="zip_file" accept=".zip" required>
     </div>
-    <button type="submit" class="btn btn-primary btn-lg">🚀 Import Products</button>
+    <button type="submit" class="btn btn-primary btn-lg btn-block" style="padding:14px 24px; font-size:1.2rem;">🚀 Import Products</button>
   </form>
 
   <div class="import-note">
@@ -64,6 +65,7 @@
   .upload-box label { font-weight:600; display:block; margin-bottom:4px; }
   .upload-box input[type="file"] { display:block; width:100%; padding:8px; border:1.5px solid #e2e8f0; border-radius:8px; }
   .btn-lg { padding:12px 32px; font-size:1.1rem; }
+  .btn-block { width:100%; }
   .import-note { background:#f8fafc; padding:16px 20px; border-radius:12px; }
   .import-note ul { padding-left:20px; color:#475569; }
   body.dark .step { background:#1a1f2e; }
