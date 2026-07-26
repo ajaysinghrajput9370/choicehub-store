@@ -710,7 +710,40 @@ def remove_cart(cart_id):
         db.session.delete(item)
         db.session.commit()
     return redirect('/cart')
+# ---------- PWA ROUTES ----------
+# Manifest and service worker are served from static folder, but we can add a route if needed.
+# We'll just use static files, but add a route for manifest.json to set correct MIME type.
 
+@app.route('/manifest.json')
+def manifest():
+    return send_file('static/manifest.json', mimetype='application/json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_file('static/sw.js', mimetype='application/javascript')
+
+# ---------- BULK TEMPLATE DOWNLOAD ROUTE ----------
+@app.route('/admin/download-bulk-template')
+@login_required
+def admin_download_bulk_template():
+    if not is_admin_user():
+        return "Access Denied", 403
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Bulk Import"
+    headers = ['SKU', 'Name', 'Selling Price', 'MRP', 'Cost Price', 'Stock', 'Category']
+    ws.append(headers)
+    # Sample rows
+    ws.append(['GANESH001', 'Ganesh Idol', 499, 699, 350, 25, 'Gifts'])
+    ws.append(['SHIV001', 'Shiv Idol', 699, 899, 500, 15, 'Spiritual Decor'])
+    from openpyxl.comments import Comment
+    cell = ws['A1']
+    cell.comment = Comment('Images must be named as SKU_1.jpg, SKU_2.jpg and placed in a ZIP file.', 'Admin')
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return send_file(output, download_name='bulk_import_template.xlsx', as_attachment=True)
 # ---------- COUPON ----------
 @app.route('/apply-coupon', methods=['POST'])
 @login_required
