@@ -26,14 +26,19 @@ load_dotenv()
 # ---------- APP SETUP ----------
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///choicehub.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Upload folder
-UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+database_url = os.environ.get("DATABASE_URL")
+
+if database_url:
+    # Render/Neon compatibility
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+else:
+    # Local development
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///choicehub.db"
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False    
 
 # ---------- RESEND SETUP ----------
 resend.api_key = os.environ.get("RESEND_API_KEY")
