@@ -17,12 +17,12 @@
     <input type="hidden" id="net-amount" value="{{ total }}">
   </div>
 
-  <!-- Address Form -->
   <form method="POST" id="checkout-form">
+    <!-- Address Section -->
     <div class="address-form">
       <h3 style="margin-bottom:12px;">📬 Delivery Address</h3>
 
-      <!-- Saved Addresses dropdown -->
+      <!-- Saved Addresses Dropdown -->
       {% if addresses %}
       <div style="margin-bottom:16px;">
         <label style="font-weight:600;">Select saved address</label>
@@ -35,72 +35,55 @@
       </div>
       {% endif %}
 
+      <!-- Address Fields (always visible, auto-filled if saved address selected) -->
       <div id="address-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-        <div>
-          <label>Full Name *</label>
-          <input type="text" name="full_name" required class="form-input" placeholder="Enter full name">
-        </div>
-        <div>
-          <label>Phone *</label>
-          <input type="tel" name="phone" required class="form-input" placeholder="10-digit phone">
-        </div>
-        <div style="grid-column:1/-1;">
-          <label>Address Line 1 *</label>
-          <input type="text" name="address_line1" required class="form-input" placeholder="House / Building / Street">
-        </div>
-        <div style="grid-column:1/-1;">
-          <label>Address Line 2 (optional)</label>
-          <input type="text" name="address_line2" class="form-input" placeholder="Apartment / Floor / Sector">
-        </div>
-        <div>
-          <label>Locality / Area *</label>
-          <input type="text" name="locality" required class="form-input" placeholder="Locality name">
-        </div>
-        <div>
-          <label>Landmark (optional)</label>
-          <input type="text" name="landmark" class="form-input" placeholder="Nearby landmark">
-        </div>
-        <div>
-          <label>City *</label>
-          <input type="text" name="city" required class="form-input" placeholder="City" id="city-field">
-        </div>
-        <div>
-          <label>State *</label>
-          <input type="text" name="state" required class="form-input" placeholder="State" id="state-field">
-        </div>
-        <div style="grid-column:1/-1;">
-          <label>Pincode *</label>
-          <input type="text" name="pincode" required pattern="[0-9]{6}" class="form-input" placeholder="6-digit pincode" id="pincode-field">
-        </div>
+        <div><label>Full Name *</label><input type="text" name="full_name" required class="form-input" placeholder="Enter full name"></div>
+        <div><label>Phone *</label><input type="tel" name="phone" required class="form-input" placeholder="10-digit phone"></div>
+        <div style="grid-column:1/-1;"><label>Address Line 1 *</label><input type="text" name="address_line1" required class="form-input" placeholder="House / Building / Street"></div>
+        <div style="grid-column:1/-1;"><label>Address Line 2 (optional)</label><input type="text" name="address_line2" class="form-input" placeholder="Apartment / Floor / Sector"></div>
+        <div><label>Locality / Area *</label><input type="text" name="locality" required class="form-input" placeholder="Locality name"></div>
+        <div><label>Landmark (optional)</label><input type="text" name="landmark" class="form-input" placeholder="Nearby landmark"></div>
+        <div><label>City *</label><input type="text" name="city" required class="form-input" placeholder="City" id="city-field"></div>
+        <div><label>State *</label><input type="text" name="state" required class="form-input" placeholder="State" id="state-field"></div>
+        <div style="grid-column:1/-1;"><label>Pincode *</label><input type="text" name="pincode" required pattern="[0-9]{6}" class="form-input" placeholder="6-digit pincode" id="pincode-field"></div>
       </div>
     </div>
 
-    <!-- Hidden fields for coupon (default values to avoid error) -->
+    <!-- Payment Method -->
+    <div class="payment-section">
+      <h3 style="margin-bottom:12px;">💳 Choose Payment Method</h3>
+      <div class="payment-grid">
+        <label class="payment-card" id="cod-card">
+          <input type="radio" name="payment_method" value="COD" checked>
+          <div class="payment-card-content">
+            <div class="payment-icon">💵</div>
+            <div class="payment-title">Cash on Delivery</div>
+            <div class="payment-desc">Pay when you receive the product</div>
+            <div class="payment-badge">No extra charges</div>
+          </div>
+        </label>
+        <label class="payment-card" id="online-card">
+          <input type="radio" name="payment_method" value="Online">
+          <div class="payment-card-content">
+            <div class="payment-icon">💳</div>
+            <div class="payment-title">Online Payment</div>
+            <div class="payment-desc">UPI, Debit Card, Credit Card, Net Banking</div>
+            <div class="payment-badge">Fast & Secure</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Hidden fields for coupon -->
     <input type="hidden" name="coupon_id" id="form-coupon-id" value="">
     <input type="hidden" name="discount" id="form-discount" value="0">
     <input type="hidden" name="net" id="form-net" value="{{ total }}">
 
     <!-- Payable & Place Order -->
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; background:#fff; padding:16px 20px; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.04);">
+    <div class="order-summary">
       <div>
-        <span style="font-size:1.2rem; font-weight:600;">Payable: ₹<span id="display-net">{{ total }}</span></span>
-        <span style="color:#64748b; margin-left:12px;">(Cash on Delivery)</span>
-        <!-- Payment Method Selection -->
-<div style="background:#fff; padding:16px 20px; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.04); margin-bottom:16px;">
-    <h4 style="margin-bottom:8px;">💳 Payment Method</h4>
-    <div style="display:flex; flex-wrap:wrap; gap:16px;">
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="radio" name="payment_method" value="COD" checked> Cash on Delivery (COD)
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="radio" name="payment_method" value="UPI"> UPI / Google Pay
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="radio" name="payment_method" value="Card"> Credit / Debit Card
-        </label>
-    </div>
-    <p style="font-size:0.8rem; color:#64748b; margin-top:6px;">Select your preferred payment method.</p>
-</div>
+        <span class="payable-amount">Payable: ₹<span id="display-net">{{ total }}</span></span>
+        <span class="payable-method" id="payable-method-text">(Cash on Delivery)</span>
       </div>
       <button type="submit" class="btn btn-gold btn-lg">📩 Place Order</button>
     </div>
@@ -135,49 +118,25 @@
     });
   }
 
-  // ─── PINCODE AUTO-FILL CITY/STATE ─────────────────────────────
+  // Update payment method text
   document.addEventListener('DOMContentLoaded', function() {
-    const pincodeInput = document.getElementById('pincode-field');
-    const cityInput = document.getElementById('city-field');
-    const stateInput = document.getElementById('state-field');
-
-    if (pincodeInput) {
-      pincodeInput.addEventListener('blur', function() {
-        const pincode = this.value.trim();
-        if (pincode.length === 6 && /^\d{6}$/.test(pincode)) {
-          // Show loading state (optional)
-          cityInput.placeholder = 'Loading...';
-          stateInput.placeholder = 'Loading...';
-          fetch('/get-location/' + pincode)
-            .then(res => res.json())
-            .then(data => {
-              if (data.success) {
-                cityInput.value = data.city || '';
-                stateInput.value = data.state || '';
-                cityInput.placeholder = 'City';
-                stateInput.placeholder = 'State';
-              } else {
-                cityInput.placeholder = 'City (not found)';
-                stateInput.placeholder = 'State (not found)';
-                // Optionally clear fields
-                cityInput.value = '';
-                stateInput.value = '';
-                setTimeout(() => {
-                  cityInput.placeholder = 'City';
-                  stateInput.placeholder = 'State';
-                }, 2000);
-              }
-            })
-            .catch(err => {
-              console.log('Error fetching location:', err);
-              cityInput.placeholder = 'City (error)';
-              stateInput.placeholder = 'State (error)';
-            });
+    const radios = document.querySelectorAll('input[name="payment_method"]');
+    const payableText = document.getElementById('payable-method-text');
+    radios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.value === 'COD') {
+          payableText.textContent = '(Cash on Delivery)';
+        } else {
+          payableText.textContent = '(Online Payment)';
         }
+        document.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
+        this.closest('.payment-card').classList.add('selected');
       });
-    }
+    });
+    // Highlight default
+    document.querySelector('.payment-card input[value="COD"]').closest('.payment-card').classList.add('selected');
 
-    // Prefill address when saved address selected (optional AJAX)
+    // ─── SAVED ADDRESS AUTO‑FILL ─────────────────────────────
     const addressSelect = document.getElementById('address-select');
     if (addressSelect) {
       addressSelect.addEventListener('change', function() {
@@ -187,18 +146,43 @@
             .then(res => res.json())
             .then(data => {
               if (data.success) {
-                document.querySelector('input[name="full_name"]').value = data.address.full_name;
-                document.querySelector('input[name="phone"]').value = data.address.phone;
-                document.querySelector('input[name="address_line1"]').value = data.address.address_line1;
-                document.querySelector('input[name="address_line2"]').value = data.address.address_line2 || '';
-                document.querySelector('input[name="locality"]').value = data.address.locality || '';
-                document.querySelector('input[name="landmark"]').value = data.address.landmark || '';
-                document.querySelector('input[name="city"]').value = data.address.city;
-                document.querySelector('input[name="state"]').value = data.address.state;
-                document.querySelector('input[name="pincode"]').value = data.address.pincode;
+                const addr = data.address;
+                document.querySelector('input[name="full_name"]').value = addr.full_name || '';
+                document.querySelector('input[name="phone"]').value = addr.phone || '';
+                document.querySelector('input[name="address_line1"]').value = addr.address_line1 || '';
+                document.querySelector('input[name="address_line2"]').value = addr.address_line2 || '';
+                document.querySelector('input[name="locality"]').value = addr.locality || '';
+                document.querySelector('input[name="landmark"]').value = addr.landmark || '';
+                document.querySelector('input[name="city"]').value = addr.city || '';
+                document.querySelector('input[name="state"]').value = addr.state || '';
+                document.querySelector('input[name="pincode"]').value = addr.pincode || '';
               }
             })
-            .catch(() => {});
+            .catch(err => console.log('Error fetching address:', err));
+        } else {
+          // Clear fields when "Use new address"
+          document.querySelectorAll('#address-fields input').forEach(inp => inp.value = '');
+        }
+      });
+    }
+
+    // Pincode autofill (optional)
+    const pincodeInput = document.getElementById('pincode-field');
+    const cityInput = document.getElementById('city-field');
+    const stateInput = document.getElementById('state-field');
+    if (pincodeInput) {
+      pincodeInput.addEventListener('blur', function() {
+        const pincode = this.value.trim();
+        if (pincode.length === 6 && /^\d{6}$/.test(pincode)) {
+          fetch('/get-location/' + pincode)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                cityInput.value = data.city || '';
+                stateInput.value = data.state || '';
+              }
+            })
+            .catch(err => console.log('Error fetching location:', err));
         }
       });
     }
@@ -210,12 +194,33 @@
   .address-form .form-input { width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:1rem; background:#fff; transition:0.2s; }
   .address-form .form-input:focus { border-color:#b8860b; outline:none; box-shadow:0 0 0 4px rgba(184,134,11,0.08); }
   .address-form label { font-weight:600; font-size:0.9rem; display:block; margin-bottom:4px; color:#1a1a1a; }
-  .coupon-input input { padding:10px 16px; border:1.5px solid #e2e8f0; border-radius:30px; font-size:1rem; }
-  .coupon-input input:focus { border-color:#b8860b; outline:none; }
+  .address-form { background:#fff; padding:20px; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.04); margin-bottom:20px; }
+  .payment-section { background:#fff; padding:20px; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.04); margin-bottom:20px; }
+  .payment-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .payment-card { border:2px solid #e8e4dc; border-radius:16px; padding:16px; cursor:pointer; transition:0.2s; position:relative; background:#faf9f6; display:flex; align-items:center; }
+  .payment-card:hover { border-color:#b8860b; background:#fff; transform:translateY(-2px); box-shadow:0 8px 24px rgba(184,134,11,0.06); }
+  .payment-card.selected { border-color:#b8860b; background:#fff; box-shadow:0 0 0 3px rgba(184,134,11,0.15); }
+  .payment-card input[type="radio"] { position:absolute; opacity:0; width:0; height:0; }
+  .payment-card-content { display:flex; flex-direction:column; align-items:center; text-align:center; width:100%; }
+  .payment-icon { font-size:2.2rem; margin-bottom:4px; }
+  .payment-title { font-weight:700; font-size:1rem; color:#1a1a1a; }
+  .payment-desc { font-size:0.75rem; color:#64748b; margin-top:2px; }
+  .payment-badge { margin-top:6px; background:rgba(184,134,11,0.12); color:#b8860b; font-size:0.65rem; font-weight:600; padding:2px 12px; border-radius:30px; display:inline-block; }
+  .order-summary { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; background:#fff; padding:16px 20px; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.04); }
+  .payable-amount { font-size:1.2rem; font-weight:700; }
+  .payable-method { color:#64748b; margin-left:8px; font-weight:500; font-size:0.9rem; }
   .btn-gold { background:linear-gradient(145deg,#b8860b,#d4af37); color:#1a1a1a; border:none; }
   .btn-gold:hover { background:#a0750a; color:#fff; }
+  .coupon-input input { padding:10px 16px; border:1.5px solid #e2e8f0; border-radius:30px; font-size:1rem; }
+  .coupon-input input:focus { border-color:#b8860b; outline:none; }
   @media (max-width:640px) {
     #address-fields { grid-template-columns:1fr; }
+    .payment-grid { grid-template-columns:1fr; }
   }
+  body.dark .payment-card { background:#1e2638; border-color:#2a3040; }
+  body.dark .payment-card:hover { border-color:#b8860b; background:#2a3040; }
+  body.dark .payment-card.selected { border-color:#b8860b; background:#2a3040; }
+  body.dark .payment-title { color:#f1f5f9; }
+  body.dark .payment-desc { color:#94a3b8; }
 </style>
 {% endblock %}
