@@ -54,7 +54,7 @@
         <button data-tab="referrals">🔗 Referrals</button>
     </div>
 
-    <!-- ========== PRODUCTS TAB (UPDATED WITH BULK DELETE) ========== -->
+    <!-- ========== PRODUCTS TAB (with Bulk Delete) ========== -->
     <div id="tab-products" class="tab-content active">
         <div class="admin-section">
             <div class="section-header">
@@ -66,7 +66,6 @@
                         <button type="submit" class="btn btn-outline">📤 Import Excel</button>
                     </form>
                     <button class="btn btn-primary" onclick="document.getElementById('addProductModal').style.display='flex'">➕ Add Product</button>
-                    <!-- Bulk Delete Button (hidden by default) -->
                     <button class="btn btn-danger" id="bulkDeleteBtn" style="display:none;" onclick="bulkDelete()">🗑️ Delete Selected</button>
                 </div>
             </div>
@@ -87,7 +86,13 @@
                         {% for p in products %}
                         <tr>
                             <td><input type="checkbox" class="product-checkbox" value="{{ p.id }}" onchange="updateBulkButton()"></td>
-                            <td><img src="{{ url_for('static', filename='uploads/' + p.main_image()) if p.main_image() else '/static/img/noimage.png' }}" alt="{{ p.name }}" style="width:50px; height:50px; object-fit:cover; border-radius:8px;"></td>
+                            <td>
+                                {% if p.main_image() %}
+                                    <img src="{{ p.main_image() }}" alt="{{ p.name }}" style="width:50px; height:50px; object-fit:cover; border-radius:8px;">
+                                {% else %}
+                                    <img src="/static/img/noimage.png" alt="No image" style="width:50px; height:50px; object-fit:cover; border-radius:8px;">
+                                {% endif %}
+                            </td>
                             <td><strong>{{ p.name }}</strong></td>
                             <td>₹{{ p.selling_price }}</td>
                             <td>{{ p.stock }}</td>
@@ -271,7 +276,7 @@
         </div>
     </div>
 
-    <!-- ========== BANNERS TAB ========== -->
+    <!-- ========== BANNERS TAB (UPDATED) ========== -->
     <div id="tab-banners" class="tab-content">
         <div class="admin-section">
             <div class="section-header">
@@ -289,7 +294,7 @@
                     <tbody>
                         {% for b in banners %}
                         <tr>
-                            <td><img src="{{ url_for('static', filename='uploads/' + b.image) }}" alt="{{ b.title }}" style="width:60px; height:40px; object-fit:cover; border-radius:4px;"></td>
+                            <td><img src="{{ b.image }}" alt="{{ b.title }}" style="width:60px; height:40px; object-fit:cover; border-radius:4px;"></td>
                             <td>{{ b.title or '-' }}</td>
                             <td>{{ b.link or '-' }}</td>
                             <td><a href="/admin/delete-banner/{{ b.id }}" class="btn btn-sm btn-danger" onclick="return confirm('Delete this banner?')">Delete</a></td>
@@ -303,7 +308,7 @@
         </div>
     </div>
 
-    <!-- ========== REFERRALS TAB (NEW) ========== -->
+    <!-- ========== REFERRALS TAB ========== -->
     <div id="tab-referrals" class="tab-content">
         <div class="admin-section">
             <h2>🔗 Referral Tracking</h2>
@@ -322,7 +327,6 @@
                     </thead>
                     <tbody>
                         {% for s in sellers %}
-                        {# Calculate referral users and orders for this seller #}
                         {% set referred_users = [] %}
                         {% set referral_orders = [] %}
                         {% for u in users if u.referral_code == s.user.referral_code %}
@@ -353,7 +357,7 @@
     <div class="fab" onclick="document.getElementById('addProductModal').style.display='flex'">➕</div>
 
     <!-- ============================================================ -->
-    <!-- ADD PRODUCT MODAL – WITHOUT DELIVERY TIME (SINGLE MODAL)      -->
+    <!-- ADD PRODUCT MODAL (unchanged) -->
     <!-- ============================================================ -->
     <div id="addProductModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width:800px;">
@@ -376,9 +380,7 @@
                     <div><label>Return Policy</label><input type="text" name="return_policy" placeholder="e.g., 7 days"></div>
                     <div><label>Video URL</label><input type="text" name="video_url" placeholder="YouTube link"></div>
                     <div><label>Care Instructions</label><input type="text" name="care_instructions"></div>
-                    <!-- delivery_time removed -->
                 </div>
-
                 <div style="margin-top:8px;">
                     <label>Short Description</label>
                     <input type="text" name="short_description">
@@ -421,7 +423,7 @@
 </div>
 
 <script>
-    // ─── TAB PERSISTENCY ──────────────────────────────────────────
+    // Tab persistency, bulk delete functions
     (function() {
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
@@ -438,7 +440,6 @@
         }
     })();
 
-    // ─── TAB SWITCHING (updates URL) ─────────────────────────────
     document.querySelectorAll('.admin-tabs button').forEach(btn => {
         btn.addEventListener('click', function() {
             const tab = this.dataset.tab;
@@ -452,14 +453,12 @@
         });
     });
 
-    // ─── MODAL CLOSE ON OUTSIDE CLICK ────────────────────────────
     window.onclick = function(e) {
         if (e.target.classList.contains('modal')) {
             e.target.style.display = 'none';
         }
     }
 
-    // ─── BULK DELETE FUNCTIONS ──────────────────────────────────
     function toggleAll(source) {
         document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = source.checked);
         updateBulkButton();
@@ -495,69 +494,55 @@
 </script>
 
 <style>
-    /* ─── Premium Admin Styles ──────────────────────────────────── */
+    /* (style same as before – no changes needed) */
     .admin-wrapper { background:#fff; border-radius:20px; padding:24px; box-shadow:0 4px 24px rgba(0,0,0,0.04); }
     .admin-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
     .admin-header h1 { font-size:1.8rem; font-weight:700; color:#1a1a1a; }
     .admin-header h1::before { content:''; display:inline-block; width:6px; height:32px; background:linear-gradient(180deg,#b8860b,#d4af37); border-radius:4px; margin-right:10px; }
     .admin-user { background:linear-gradient(135deg,#f8f6f2,#e8e4dc); padding:6px 16px; border-radius:30px; font-weight:500; color:#b8860b; border:1px solid #b8860b; }
-
     .admin-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:24px; }
     .stat-card { background:linear-gradient(145deg,#faf9f6,#f1efe9); padding:16px; border-radius:16px; text-align:center; border:1px solid #e8e4dc; transition:0.2s; }
     .stat-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(184,134,11,0.12); }
     .stat-icon { font-size:2.2rem; }
     .stat-number { font-size:2rem; font-weight:700; color:#b8860b; }
     .stat-label { color:#5b5b6b; font-size:0.9rem; font-weight:500; }
-
     .admin-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:2px solid #e8e4dc; margin-bottom:20px; }
     .admin-tabs button { background:transparent; border:none; padding:10px 18px; font-weight:600; color:#5b5b6b; border-bottom:3px solid transparent; cursor:pointer; font-size:0.95rem; transition:0.2s; }
     .admin-tabs button.active { color:#b8860b; border-bottom-color:#b8860b; background:rgba(184,134,11,0.04); border-radius:10px 10px 0 0; }
-
     .tab-content { display:none; }
     .tab-content.active { display:block; }
-
     .admin-section { margin-bottom:30px; }
     .section-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:16px; gap:8px; }
-
     .table-responsive { overflow-x:auto; }
     .admin-table { width:100%; border-collapse:collapse; font-size:0.95rem; }
     .admin-table th { background:#f1efe9; padding:10px 12px; text-align:left; font-weight:600; color:#1a1a1a; }
     .admin-table td { padding:10px 12px; border-bottom:1px solid #f0ede8; }
     .admin-table tr:hover td { background:#faf9f6; }
-
     .btn-sm { padding:4px 12px; font-size:0.8rem; }
-
     .status-badge { display:inline-block; padding:2px 10px; border-radius:30px; font-size:0.75rem; font-weight:600; }
     .status-badge.placed { background:#fef3c7; color:#92400e; }
     .status-badge.confirmed { background:#dbeafe; color:#1e40af; }
     .status-badge.shipped { background:#d1fae5; color:#065f46; }
     .status-badge.delivered { background:#d1fae5; color:#065f46; }
     .status-badge.cancelled { background:#fee2e2; color:#991b1b; }
-
     .role-badge { display:inline-block; padding:2px 10px; border-radius:30px; font-size:0.75rem; font-weight:600; background:#e8e4dc; color:#1a1a1a; }
-
     .fab { position:fixed; bottom:30px; right:30px; background:linear-gradient(145deg,#b8860b,#d4af37); color:#fff; width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2rem; box-shadow:0 8px 24px rgba(184,134,11,0.3); cursor:pointer; z-index:100; border:0; transition:0.2s; }
     .fab:hover { transform:scale(1.05); }
-
     .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); display:flex; justify-content:center; align-items:center; z-index:200; }
     .modal-content { background:#fff; padding:28px; border-radius:24px; max-width:800px; width:95%; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.15); animation:slideUp 0.25s ease; }
     @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
     .modal-close { float:right; font-size:1.8rem; cursor:pointer; background:0; border:0; color:#888; }
     .modal-close:hover { color:#000; }
-
     .modal-content input, .modal-content select, .modal-content textarea { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:1rem; margin-top:4px; transition:0.2s; }
     .modal-content input:focus, .modal-content select:focus, .modal-content textarea:focus { border-color:#b8860b; outline:none; box-shadow:0 0 0 4px rgba(184,134,11,0.1); }
     .modal-content label { font-weight:600; font-size:0.9rem; color:#1a1a1a; }
     .modal-content input[type="checkbox"] { width:auto; margin-right:4px; }
-
     .banner-form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .banner-form input[type="text"], .banner-form input[type="file"] { padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:0.95rem; background:#fff; }
-
     .btn-primary { background:linear-gradient(145deg,#b8860b,#d4af37); color:#1a1a1a; border:none; }
     .btn-primary:hover { background:#a0750a; color:#fff; }
     .btn-outline { background:transparent; border:1.5px solid #b8860b; color:#b8860b; }
     .btn-outline:hover { background:#b8860b; color:#fff; }
-
     @media (max-width:640px) {
         .admin-stats { grid-template-columns:1fr 1fr; }
         .admin-header h1 { font-size:1.4rem; }
