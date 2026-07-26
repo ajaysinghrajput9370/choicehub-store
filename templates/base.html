@@ -102,12 +102,21 @@
         body.dark .avatar-dropdown .dropdown-menu .divider {
             background: #2a3040;
         }
+        /* Mobile header compact */
+        @media (max-width: 768px) {
+            .header-top { gap: 6px; padding: 4px 0; }
+            .logo img { max-height: 32px; }
+            .header-search input { padding: 6px 12px; font-size: 0.8rem; }
+            .header-search button { padding: 6px 12px; font-size: 1rem; }
+            .header-actions a { padding: 4px 8px; font-size: 0.75rem; }
+            .header-actions .btn-outline-nav, .header-actions .btn-primary-nav { padding: 4px 8px; font-size: 0.7rem; }
+            .header-nav a { font-size: 0.65rem; padding: 2px 6px; }
+            .header-nav { gap: 4px; padding: 4px 0; }
+        }
     </style>
 </head>
 <body>
-    <!-- ─── MAIN WRAPPER (pushes footer down) ─── -->
     <div class="main-content-wrapper">
-        <!-- ========== HEADER ========== -->
         <header>
             <div class="header-top">
                 <div class="logo">
@@ -116,7 +125,7 @@
                     </a>
                 </div>
                 <form action="/search" method="GET" class="header-search">
-                    <input type="text" name="q" placeholder="Search for products, brands & more..." value="{{ request.args.get('q', '') }}">
+                    <input type="text" name="q" placeholder="Search..." value="{{ request.args.get('q', '') }}">
                     <button type="submit"><i class="fas fa-search"></i></button>
                 </form>
                 <div class="header-actions">
@@ -160,7 +169,6 @@
             </nav>
         </header>
 
-        <!-- ========== MAIN CONTENT ========== -->
         <main class="container">
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
@@ -171,7 +179,7 @@
         </main>
     </div>
 
-    <!-- ========== SOCIAL STRIP (only on profile page) ========== -->
+    <!-- Social Strip & Bottom Nav (existing) -->
     <div class="social-strip" id="socialStrip">
         <button class="strip-toggle" onclick="toggleStrip()">
             <i class="fa-regular fa-circle-question"></i> Help
@@ -182,7 +190,6 @@
         </div>
     </div>
 
-    <!-- ========== BOTTOM NAVIGATION (APP-LIKE FOR MOBILE) ========== -->
     <nav class="app-bottom-nav">
         <a href="/" class="nav-item"><i class="fas fa-home"></i><span>Home</span></a>
         <a href="/search" class="nav-item"><i class="fas fa-search"></i><span>Search</span></a>
@@ -191,7 +198,6 @@
         <a href="https://wa.me/919355491854?text=Hi%20ChoiceHub%2C%20I%20need%20help." target="_blank" class="nav-item"><i class="fa-brands fa-whatsapp"></i><span>Help</span></a>
     </nav>
 
-    <!-- ========== FOOTER ========== -->
     <footer>
         <div class="footer-inner">
             <div>© 2025 ChoiceHub – Every Gift, Every Smile.</div>
