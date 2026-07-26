@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Bulk Product Import{% endblock %}
+{% block content %}
+<div class="bulk-import-wrapper">
+  <h1>📦 Bulk Product Import</h1>
+  <p class="subtitle">Upload Excel and ZIP to import multiple products at once.</p>
+
+  <div class="import-steps">
+    <div class="step">
+      <span class="step-num">1</span>
+      <div>
+        <strong>Prepare Excel</strong>
+        <p>Columns: <code>SKU, Name, Selling Price, MRP, Stock, Category</code> (SKU must match image filenames)</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">2</span>
+      <div>
+        <strong>Prepare Images</strong>
+        <p>Name images as <code>SKU_1.jpg</code>, <code>SKU_2.jpg</code>, etc. and zip them.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">3</span>
+      <div>
+        <strong>Upload &amp; Import</strong>
+        <p>Upload both files and click Import. System will match SKU and upload images automatically.</p>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" action="/admin/bulk-import" enctype="multipart/form-data" class="import-form">
+    <div class="upload-box">
+      <label>📄 Excel File (.xlsx)</label>
+      <input type="file" name="excel_file" accept=".xlsx" required>
+    </div>
+    <div class="upload-box">
+      <label>📁 ZIP File (images)</label>
+      <input type="file" name="zip_file" accept=".zip" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg">🚀 Import Products</button>
+  </form>
+
+  <div class="import-note">
+    <h4>📌 How it works</h4>
+    <ul>
+      <li>System reads SKU from Excel.</li>
+      <li>Extracts ZIP and finds images starting with that SKU.</li>
+      <li>Uploads all matching images to Cloudinary and saves URLs in product.</li>
+      <li>If images missing, you'll see a warning.</li>
+    </ul>
+  </div>
+</div>
+
+<style>
+  .bulk-import-wrapper { max-width:800px; margin:0 auto; padding:20px 16px; }
+  .subtitle { color:#64748b; margin-bottom:24px; }
+  .import-steps { display:flex; flex-direction:column; gap:12px; margin-bottom:24px; }
+  .step { display:flex; gap:14px; align-items:flex-start; background:#f8fafc; padding:12px 16px; border-radius:12px; }
+  .step-num { background:#b8860b; color:#fff; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; }
+  .step p { margin:2px 0 0; color:#475569; font-size:0.9rem; }
+  .import-form { background:#fff; padding:24px; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.04); margin-bottom:20px; }
+  .upload-box { margin-bottom:16px; }
+  .upload-box label { font-weight:600; display:block; margin-bottom:4px; }
+  .upload-box input[type="file"] { display:block; width:100%; padding:8px; border:1.5px solid #e2e8f0; border-radius:8px; }
+  .btn-lg { padding:12px 32px; font-size:1.1rem; }
+  .import-note { background:#f8fafc; padding:16px 20px; border-radius:12px; }
+  .import-note ul { padding-left:20px; color:#475569; }
+  body.dark .step { background:#1a1f2e; }
+  body.dark .step p { color:#94a3b8; }
+  body.dark .import-form { background:#1a1f2e; }
+  body.dark .import-note { background:#1a1f2e; }
+  body.dark .upload-box input[type="file"] { background:#2a3040; border-color:#3a4050; color:#f1f5f9; }
+</style>
+{% endblock %}
