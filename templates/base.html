@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>{% block title %}ChoiceHub – Every Gift, Every Smile{% endblock %}</title>
+    
+    <!-- ========== PWA LINKS ========== -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#d4af37">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -179,7 +186,7 @@
         </main>
     </div>
 
-    <!-- Social Strip & Bottom Nav (existing) -->
+    <!-- Social Strip & Bottom Nav -->
     <div class="social-strip" id="socialStrip">
         <button class="strip-toggle" onclick="toggleStrip()">
             <i class="fa-regular fa-circle-question"></i> Help
@@ -206,6 +213,8 @@
                 <a href="#">Terms</a>
                 <a href="https://wa.me/919355491854" target="_blank" style="display:inline-flex; align-items:center; gap:4px;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
                 <a href="https://www.instagram.com/thechoicehub.store/" target="_blank" style="display:inline-flex; align-items:center; gap:4px;"><i class="fa-brands fa-instagram"></i> Instagram</a>
+                <!-- Install Button -->
+                <button id="installBtn" class="btn btn-primary" style="display:none; padding:8px 16px; font-size:0.9rem;">📲 Install App</button>
             </div>
         </div>
     </footer>
@@ -233,6 +242,47 @@
                 });
             }
         });
+
+        // ========== PWA SERVICE WORKER ==========
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // ========== INSTALL BUTTON ==========
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            installBtn.style.display = 'none';
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installBtn.style.display = 'inline-block';
+                installBtn.addEventListener('click', () => {
+                    installBtn.style.display = 'none';
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        } else {
+                            console.log('User dismissed the install prompt');
+                        }
+                        deferredPrompt = null;
+                    });
+                });
+            });
+            window.addEventListener('appinstalled', () => {
+                installBtn.style.display = 'none';
+                console.log('App installed');
+            });
+        }
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>
