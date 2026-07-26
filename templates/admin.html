@@ -54,30 +54,39 @@
         <button data-tab="referrals">🔗 Referrals</button>
     </div>
 
-    <!-- ========== PRODUCTS TAB ========== -->
+    <!-- ========== PRODUCTS TAB (UPDATED WITH BULK DELETE) ========== -->
     <div id="tab-products" class="tab-content active">
         <div class="admin-section">
             <div class="section-header">
                 <h2>📦 Products</h2>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                     <a href="/admin/download-template" class="btn btn-outline">📥 Download Template</a>
                     <form method="POST" action="/admin/import-excel" enctype="multipart/form-data" style="display:inline-flex; gap:8px; align-items:center;">
                         <input type="file" name="excel_file" accept=".xlsx" style="padding:4px; font-size:0.9rem;">
                         <button type="submit" class="btn btn-outline">📤 Import Excel</button>
                     </form>
                     <button class="btn btn-primary" onclick="document.getElementById('addProductModal').style.display='flex'">➕ Add Product</button>
+                    <!-- Bulk Delete Button (hidden by default) -->
+                    <button class="btn btn-danger" id="bulkDeleteBtn" style="display:none;" onclick="bulkDelete()">🗑️ Delete Selected</button>
                 </div>
             </div>
             <div class="table-responsive">
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th>Image</th><th>Name</th><th>Price</th><th>Stock</th><th>Category</th><th>Actions</th>
+                            <th><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Category</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for p in products %}
                         <tr>
+                            <td><input type="checkbox" class="product-checkbox" value="{{ p.id }}" onchange="updateBulkButton()"></td>
                             <td><img src="{{ url_for('static', filename='uploads/' + p.main_image()) if p.main_image() else '/static/img/noimage.png' }}" alt="{{ p.name }}" style="width:50px; height:50px; object-fit:cover; border-radius:8px;"></td>
                             <td><strong>{{ p.name }}</strong></td>
                             <td>₹{{ p.selling_price }}</td>
@@ -89,7 +98,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="6" style="text-align:center; color:#888;">No products yet.</td></tr>
+                        <tr><td colspan="7" style="text-align:center; color:#888;">No products yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -448,6 +457,40 @@
         if (e.target.classList.contains('modal')) {
             e.target.style.display = 'none';
         }
+    }
+
+    // ─── BULK DELETE FUNCTIONS ──────────────────────────────────
+    function toggleAll(source) {
+        document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = source.checked);
+        updateBulkButton();
+    }
+
+    function updateBulkButton() {
+        const checked = document.querySelectorAll('.product-checkbox:checked').length;
+        const btn = document.getElementById('bulkDeleteBtn');
+        if (checked > 0) {
+            btn.style.display = 'inline-block';
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function bulkDelete() {
+        const checked = document.querySelectorAll('.product-checkbox:checked');
+        if (checked.length === 0) return;
+        if (!confirm(`Delete ${checked.length} selected products?`)) return;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/delete-products';
+        checked.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'product_ids';
+            input.value = cb.value;
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
     }
 </script>
 
