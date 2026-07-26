@@ -21,6 +21,10 @@ from itsdangerous import URLSafeTimedSerializer
 import requests
 import resend
 
+# ---------- CLOUDINARY IMPORTS ----------
+import cloudinary
+import cloudinary.uploader
+
 load_dotenv()
 
 # ---------- APP SETUP ----------
@@ -37,11 +41,14 @@ else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///choicehub.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Upload folder
+# Upload folder (still needed for local fallback and Excel import)
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ---------- CLOUDINARY CONFIG ----------
+cloudinary.config()  # Uses CLOUDINARY_URL from environment
 
 # ---------- RESEND SETUP ----------
 resend.api_key = os.environ.get("RESEND_API_KEY")
@@ -123,7 +130,7 @@ class Product(db.Model):
     warranty = db.Column(db.String(100), nullable=True)
     return_policy = db.Column(db.Text, nullable=True)
     delivery_time = db.Column(db.String(50), nullable=True)
-    images = db.Column(db.Text, nullable=True)
+    images = db.Column(db.Text, nullable=True)        # Now stores comma-separated Cloudinary URLs
     video_url = db.Column(db.String(300), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     is_featured = db.Column(db.Boolean, default=False)
@@ -304,15 +311,20 @@ def load_user(user_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# ---------- UPLOAD IMAGE (CLOUDINARY) ----------
 def upload_image(file):
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        unique_name = f"{uuid.uuid4().hex}_{filename}"
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
-        return unique_name
+        result = cloudinary.uploader.upload(
+            file,
+            folder="choicehub/products"
+        )
+        return result["secure_url"]
     return None
 
 def download_and_save_image(url):
+    # This function is used for Excel import to download images from URLs.
+    # It still saves locally – but we could also upload to Cloudinary if needed.
+    # We'll keep it as is for now; you can later modify it to use Cloudinary upload.
     try:
         resp = requests.get(url, timeout=10)
         if resp.status_code == 200:
@@ -1025,9 +1037,9 @@ def admin_add_product():
     fnames = []
     for f in files:
         if f and allowed_file(f.filename):
-            fn = upload_image(f)
-            if fn:
-                fnames.append(fn)
+            url = upload_image(f)
+            if url:
+                fnames.append(url)
     images_str = ','.join(fnames) if fnames else ''
     product = Product(
         name=name, slug=slug, category_id=category_id,
@@ -1102,17 +1114,14 @@ def admin_delete_product(id):
     if not is_admin_user():
         return "Access Denied", 403
     product = Product.query.get_or_404(id)
-    for img in product.image_list():
-        try:
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], img))
-        except:
-            pass
+    # Delete images from Cloudinary? (Optional)
+    # We can skip as they are stored on Cloudinary and will remain.
     db.session.delete(product)
     db.session.commit()
     flash('Product deleted.')
     return redirect('/admin?tab=products')
 
-# ===== BULK DELETE PRODUCTS =====
+# Bulk Delete
 @app.route('/admin/delete-products', methods=['POST'])
 @login_required
 def admin_delete_products():
@@ -1127,11 +1136,7 @@ def admin_delete_products():
             pid = int(pid)
             product = Product.query.get(pid)
             if product:
-                for img in product.image_list():
-                    try:
-                        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], img))
-                    except:
-                        pass
+                # Cloudinary images will remain (or you can delete them if needed)
                 db.session.delete(product)
         except:
             pass
@@ -1139,9 +1144,281 @@ def admin_delete_products():
     flash(f'{len(product_ids)} products deleted.')
     return redirect('/admin?tab=products')
 
-# ---------- other admin routes (coupon, seller, import, category, banner) ----------
-# (They remain exactly as before; I'm not repeating them here to save space)
-# but you should keep all of them.
+@app.route('/admin/update-order/<int:id>/<status>')
+@login_required
+def admin_update_order(id, status):
+    if not is_admin_user():
+        return "Access Denied", 403
+    order = Order.query.get_or_404(id)
+    order.status = status
+    db.session.commit()
+    return redirect('/admin?tab=orders')
+
+@app.route('/admin/add-coupon', methods=['POST'])
+@login_required
+def admin_add_coupon():
+    if not is_admin_user():
+        return "Access Denied", 403
+    code = request.form.get('code').upper()
+    dtype = request.form.get('discount_type')
+    dvalue = float(request.form.get('discount_value'))
+    min_order = float(request.form.get('min_order', 0))
+    max_discount = request.form.get('max_discount')
+    max_discount = float(max_discount) if max_discount else None
+    expiry_str = request.form.get('expiry')
+    expiry = datetime.strptime(expiry_str, '%Y-%m-%d') if expiry_str else datetime.utcnow() + timedelta(days=30)
+    coupon = Coupon(
+        code=code,
+        discount_type=dtype,
+        discount_value=dvalue,
+        min_order_amount=min_order,
+        max_discount_amount=max_discount,
+        expiry_date=expiry
+    )
+    db.session.add(coupon)
+    db.session.commit()
+    flash(f'✅ Coupon {code} added!')
+    return redirect('/admin?tab=coupons')
+
+@app.route('/admin/delete-coupon/<int:id>')
+@login_required
+def admin_delete_coupon(id):
+    if not is_admin_user():
+        return "Access Denied", 403
+    coupon = Coupon.query.get_or_404(id)
+    db.session.delete(coupon)
+    db.session.commit()
+    return redirect('/admin?tab=coupons')
+
+@app.route('/admin/create-seller', methods=['POST'])
+@login_required
+def admin_create_seller():
+    if not is_admin_user():
+        return "Access Denied", 403
+    name = request.form.get('name')
+    phone = request.form.get('phone')
+    password = request.form.get('password')
+    store_name = request.form.get('store_name')
+    commission = float(request.form.get('commission_rate', 10))
+    if User.query.filter_by(phone=phone).first():
+        flash('Phone already registered!')
+        return redirect('/admin?tab=sellers')
+    hashed = generate_password_hash(password)
+    ref_code = f"{name[:4].upper()}{random.randint(100,999)}"
+    while User.query.filter_by(referral_code=ref_code).first():
+        ref_code = f"{name[:4].upper()}{random.randint(100,999)}"
+    user = User(
+        name=name,
+        phone=phone,
+        password_hash=hashed,
+        role='seller',
+        referral_code=ref_code
+    )
+    db.session.add(user)
+    db.session.flush()
+    seller = Seller(user_id=user.id, store_name=store_name, commission_rate=commission)
+    db.session.add(seller)
+    db.session.commit()
+    flash(f'✅ Seller {name} created! Phone: {phone}, Password: {password}')
+    return redirect('/admin?tab=sellers')
+
+@app.route('/admin/import-excel', methods=['POST'])
+@login_required
+def admin_import_excel():
+    if not is_admin_user():
+        return "Access Denied", 403
+    file = request.files.get('excel_file')
+    if not file or not file.filename.endswith('.xlsx'):
+        flash('Please upload .xlsx file')
+        return redirect('/admin?tab=products')
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(file)
+        ws = wb.active
+        headers = [cell.value for cell in ws[1] if cell.value]
+        col_map = {}
+        for idx, h in enumerate(headers):
+            h_lower = str(h).strip().lower()
+            if h_lower in ['name', 'brand', 'sku', 'cost_price', 'selling_price', 'mrp', 'stock',
+                           'category', 'short_description', 'description', 'features', 'specifications',
+                           'weight', 'dimensions', 'material', 'care_instructions', 'warranty',
+                           'return_policy', 'delivery_time', 'video_url', 'image_urls',
+                           'is_featured', 'is_bestseller', 'is_trending', 'is_new',
+                           'free_delivery', 'cod_available']:
+                col_map[h_lower] = idx
+        required = ['name', 'selling_price', 'mrp']
+        for req in required:
+            if req not in col_map:
+                flash(f'Missing column: {req}')
+                return redirect('/admin?tab=products')
+        added = 0
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if not row or not row[col_map['name']]:
+                continue
+            name = str(row[col_map['name']])
+            selling_price = safe_float(row[col_map.get('selling_price', -1)], 0.0)
+            mrp = safe_float(row[col_map.get('mrp', -1)], 0.0)
+            cost_price = safe_float(row[col_map.get('cost_price', -1)], 0.0)
+            stock = safe_int(row[col_map.get('stock', -1)], 0)
+            weight = safe_float(row[col_map.get('weight', -1)], None)
+            category_name = str(row[col_map.get('category', -1)]) if 'category' in col_map and row[col_map['category']] else ''
+            brand = str(row[col_map.get('brand', -1)]) if 'brand' in col_map and row[col_map['brand']] else ''
+            sku = str(row[col_map.get('sku', -1)]) if 'sku' in col_map and row[col_map['sku']] else f"SKU-{uuid.uuid4().hex[:8].upper()}"
+            short_desc = str(row[col_map.get('short_description', -1)]) if 'short_description' in col_map and row[col_map['short_description']] else ''
+            description = str(row[col_map.get('description', -1)]) if 'description' in col_map and row[col_map['description']] else ''
+            features = str(row[col_map.get('features', -1)]) if 'features' in col_map and row[col_map['features']] else ''
+            specifications = str(row[col_map.get('specifications', -1)]) if 'specifications' in col_map and row[col_map['specifications']] else ''
+            dimensions = str(row[col_map.get('dimensions', -1)]) if 'dimensions' in col_map and row[col_map['dimensions']] else ''
+            material = str(row[col_map.get('material', -1)]) if 'material' in col_map and row[col_map['material']] else ''
+            care_instructions = str(row[col_map.get('care_instructions', -1)]) if 'care_instructions' in col_map and row[col_map['care_instructions']] else ''
+            warranty = str(row[col_map.get('warranty', -1)]) if 'warranty' in col_map and row[col_map['warranty']] else ''
+            return_policy = str(row[col_map.get('return_policy', -1)]) if 'return_policy' in col_map and row[col_map['return_policy']] else ''
+            delivery_time = str(row[col_map.get('delivery_time', -1)]) if 'delivery_time' in col_map and row[col_map['delivery_time']] else ''
+            video_url = str(row[col_map.get('video_url', -1)]) if 'video_url' in col_map and row[col_map['video_url']] else ''
+            image_urls = str(row[col_map.get('image_urls', -1)]) if 'image_urls' in col_map and row[col_map['image_urls']] else ''
+            is_featured = str(row[col_map.get('is_featured', -1)]) if 'is_featured' in col_map and row[col_map['is_featured']] else ''
+            is_bestseller = str(row[col_map.get('is_bestseller', -1)]) if 'is_bestseller' in col_map and row[col_map['is_bestseller']] else ''
+            is_trending = str(row[col_map.get('is_trending', -1)]) if 'is_trending' in col_map and row[col_map['is_trending']] else ''
+            is_new = str(row[col_map.get('is_new', -1)]) if 'is_new' in col_map and row[col_map['is_new']] else ''
+            free_delivery = str(row[col_map.get('free_delivery', -1)]) if 'free_delivery' in col_map and row[col_map['free_delivery']] else ''
+            cod_available = str(row[col_map.get('cod_available', -1)]) if 'cod_available' in col_map and row[col_map['cod_available']] else ''
+            # Category
+            cat = Category.query.filter_by(name=category_name).first()
+            if not cat and category_name:
+                cat = Category(name=category_name, slug=category_name.lower().replace(' ', '-'))
+                db.session.add(cat)
+                db.session.flush()
+            elif not cat:
+                cat = Category.query.first()
+            # Images: download locally (as before)
+            images_list = []
+            if image_urls:
+                for url in image_urls.split(','):
+                    url = url.strip()
+                    if url:
+                        fn = download_and_save_image(url)
+                        if fn:
+                            images_list.append(fn)
+            images_str = ','.join(images_list)
+            slug = name.lower().replace(' ', '-') + '-' + uuid.uuid4().hex[:4]
+            product = Product(
+                name=name, slug=slug, category_id=cat.id,
+                brand=brand, sku=sku, cost_price=cost_price,
+                selling_price=selling_price, mrp=mrp,
+                stock=stock, short_description=short_desc,
+                description=description, features=features,
+                specifications=specifications, weight=weight,
+                dimensions=dimensions, material=material,
+                care_instructions=care_instructions,
+                warranty=warranty, return_policy=return_policy,
+                delivery_time=delivery_time, video_url=video_url,
+                is_featured=(is_featured.lower() in ['true','yes','1']) if is_featured else False,
+                is_bestseller=(is_bestseller.lower() in ['true','yes','1']) if is_bestseller else False,
+                is_trending=(is_trending.lower() in ['true','yes','1']) if is_trending else False,
+                is_new=(is_new.lower() in ['true','yes','1']) if is_new else False,
+                free_delivery=(free_delivery.lower() in ['true','yes','1']) if free_delivery else False,
+                cod_available=(cod_available.lower() in ['true','yes','1']) if cod_available else False,
+                images=images_str
+            )
+            if mrp > 0:
+                product.discount_percent = ((mrp - selling_price) / mrp) * 100
+            db.session.add(product)
+            added += 1
+        db.session.commit()
+        flash(f'✅ Imported {added} products!')
+    except Exception as e:
+        flash(f'Error: {str(e)}')
+    return redirect('/admin?tab=products')
+
+@app.route('/admin/download-template')
+@login_required
+def download_template():
+    if not is_admin_user():
+        return "Access Denied", 403
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Products"
+    headers = [
+        'name', 'brand', 'sku', 'cost_price', 'selling_price', 'mrp', 'stock',
+        'category', 'short_description', 'description', 'features', 'specifications',
+        'weight', 'dimensions', 'material', 'care_instructions', 'warranty',
+        'return_policy', 'delivery_time', 'video_url', 'image_urls',
+        'is_featured', 'is_bestseller', 'is_trending', 'is_new',
+        'free_delivery', 'cod_available'
+    ]
+    ws.append(headers)
+    sample = [
+        'Sample Product', 'SampleBrand', 'SKU123', 300, 499, 699, 10,
+        'Gifts', 'Short description', 'Full description here', 'Feature1, Feature2', 'Weight: 1kg, Color: Gold',
+        1.2, '10x10x5 cm', 'Wood', 'Wipe with dry cloth', '1 year', '7 days return', '2-3 days', 'https://youtube.com/xyz',
+        'https://example.com/image1.jpg, https://example.com/image2.jpg  (comma separated URLs)',
+        'yes', 'no', 'yes', 'no', 'yes', 'yes'
+    ]
+    ws.append(sample)
+    from openpyxl.comments import Comment
+    cell = ws['V2']
+    cell.comment = Comment('Enter comma-separated image URLs. The system will download and save them automatically.', 'Admin')
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return send_file(output, download_name='product_import_template.xlsx', as_attachment=True)
+
+@app.route('/admin/add-category', methods=['POST'])
+@login_required
+def admin_add_category():
+    if not is_admin_user():
+        return "Access Denied", 403
+    name = request.form.get('name')
+    slug = name.lower().replace(' ', '-')
+    if Category.query.filter_by(slug=slug).first():
+        flash('Category already exists!')
+        return redirect('/admin?tab=categories')
+    cat = Category(name=name, slug=slug)
+    db.session.add(cat)
+    db.session.commit()
+    flash('✅ Category added!')
+    return redirect('/admin?tab=categories')
+
+@app.route('/admin/delete-category/<int:id>')
+@login_required
+def admin_delete_category(id):
+    if not is_admin_user():
+        return "Access Denied", 403
+    cat = Category.query.get_or_404(id)
+    db.session.delete(cat)
+    db.session.commit()
+    return redirect('/admin?tab=categories')
+
+@app.route('/admin/add-banner', methods=['POST'])
+@login_required
+def admin_add_banner():
+    if not is_admin_user():
+        return "Access Denied", 403
+    title = request.form.get('title')
+    link = request.form.get('link')
+    file = request.files.get('image')
+    if file and allowed_file(file.filename):
+        # Upload to Cloudinary
+        result = cloudinary.uploader.upload(file, folder="choicehub/banners")
+        image_url = result["secure_url"]
+        banner = Banner(title=title, image=image_url, link=link)
+        db.session.add(banner)
+        db.session.commit()
+        flash('✅ Banner added!')
+    else:
+        flash('Please upload a valid image.')
+    return redirect('/admin?tab=banners')
+
+@app.route('/admin/delete-banner/<int:id>')
+@login_required
+def admin_delete_banner(id):
+    if not is_admin_user():
+        return "Access Denied", 403
+    banner = Banner.query.get_or_404(id)
+    db.session.delete(banner)
+    db.session.commit()
+    return redirect('/admin?tab=banners')
 
 # ---------- BUY NOW ----------
 @app.route('/buy-now/<int:product_id>', methods=['POST'])
