@@ -2,49 +2,27 @@
 {% block title %}ChoiceHub – Premium Gifts & Decor{% endblock %}
 {% block content %}
 
-<!-- ==================== BANNER SECTION ==================== -->
+<!-- ==================== BANNER SLIDER ==================== -->
 {% if banners %}
-    {% if banners|length == 1 %}
-        <!-- SINGLE BANNER -->
-        <div class="ch-banner-single">
-            <a href="{{ banners[0].link or '#' }}" target="_blank">
-                <img src="{{ url_for('static', filename='uploads/' + banners[0].image) }}" 
-                     alt="{{ banners[0].title }}"
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22400%22%3E%3Crect fill=%22%23f0ede8%22 width=%221280%22 height=%22400%22/%3E%3Ctext x=%22640%22 y=%22200%22 font-family=%22sans-serif%22 font-size=%2230%22 fill=%22%23999%22 text-anchor=%22middle%22%3EImage%20not%20found%3C/text%3E%3C/svg%3E'">
-            </a>
-        </div>
-    {% else %}
-        <!-- MULTIPLE BANNERS – AUTO SLIDER (CONFLICT-FREE CLASSES) -->
-        <div class="ch-slider-wrapper">
-            <div class="ch-slider-track" id="chSliderTrack">
-                {% for b in banners %}
-                <div class="ch-slide">
-                    <a href="{{ b.link or '#' }}" target="_blank">
-                        <img src="{{ url_for('static', filename='uploads/' + b.image) }}" 
-                             alt="{{ b.title }}"
-                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22400%22%3E%3Crect fill=%22%23f0ede8%22 width=%221280%22 height=%22400%22/%3E%3Ctext x=%22640%22 y=%22200%22 font-family=%22sans-serif%22 font-size=%2230%22 fill=%22%23999%22 text-anchor=%22middle%22%3EImage%20not%20found%3C/text%3E%3C/svg%3E'">
-                    </a>
-                </div>
-                {% endfor %}
-            </div>
-            <!-- Dots -->
-            <div class="ch-slider-dots" id="chSliderDots">
-                {% for b in banners %}
-                <span class="ch-dot {% if loop.first %}active{% endif %}" data-index="{{ loop.index0 }}"></span>
-                {% endfor %}
-            </div>
-        </div>
-    {% endif %}
+<div class="banner-slider">
+    {% for b in banners %}
+    <div class="banner-slide">
+        <a href="{{ b.link or '#' }}" target="_blank">
+            <img src="{{ b.image }}" alt="{{ b.title }}">
+        </a>
+    </div>
+    {% endfor %}
+</div>
 {% else %}
-    <!-- FALLBACK HERO -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Every Gift,<br><span>Every Smile</span></h1>
-            <p>Discover premium gifts, toys, home & spiritual decor.</p>
-            <a href="/search" class="btn btn-gold btn-lg">Shop Now →</a>
-        </div>
-        <div class="hero-image">🎁</div>
-    </section>
+<!-- Fallback Hero -->
+<section class="hero">
+    <div class="hero-content">
+        <h1>Every Gift,<br><span>Every Smile</span></h1>
+        <p>Discover premium gifts, toys, home & spiritual decor.</p>
+        <a href="/search" class="btn btn-gold btn-lg">Shop Now →</a>
+    </div>
+    <div class="hero-image">🎁</div>
+</section>
 {% endif %}
 
 <!-- ==================== CATEGORIES ==================== -->
@@ -52,9 +30,7 @@
     <h2 class="section-title">Shop by <span>Category</span></h2>
     <div class="category-grid">
         {% for cat in categories %}
-        <a href="/search?category={{ cat.slug }}" 
-           class="category-card" 
-           data-category="{{ cat.slug }}">
+        <a href="/search?category={{ cat.slug }}" class="category-card" data-category="{{ cat.slug }}">
             <div class="category-icon">🎁</div>
             <span>{{ cat.name }}</span>
         </a>
@@ -62,7 +38,7 @@
     </div>
 </section>
 
-<!-- ==================== PRODUCTS ==================== -->
+<!-- ==================== ALL PRODUCTS ==================== -->
 <section class="products">
     <h2 class="section-title">🛍️ All <span>Products</span></h2>
     {% if products %}
@@ -71,7 +47,11 @@
         <div class="product-card">
             <a href="/product/{{ p.slug }}" class="product-link">
                 <div class="product-image">
-                    <img src="{{ url_for('static', filename='uploads/' + p.main_image()) if p.main_image() else 'https://via.placeholder.com/300x300?text=No+Image' }}" alt="{{ p.name }}">
+                    {% if p.main_image() %}
+                        <img src="{{ p.main_image() }}" alt="{{ p.name }}">
+                    {% else %}
+                        <img src="/static/img/noimage.png" alt="No image">
+                    {% endif %}
                     {% if p.is_new %}<span class="badge new">New</span>{% endif %}
                     {% if p.is_bestseller %}<span class="badge bestseller">Bestseller</span>{% endif %}
                     {% if p.is_trending %}<span class="badge trending">Trending</span>{% endif %}
@@ -101,267 +81,47 @@
     {% endif %}
 </section>
 
-<!-- ─── STYLES (NO CONFLICT WITH EXISTING CSS) ─── -->
 <style>
-    /* SINGLE BANNER */
-    .ch-banner-single {
-        width: 100%;
-        border-radius: 20px;
-        overflow: hidden;
-        margin-bottom: 20px;
-        aspect-ratio: 3.2 / 1;
-        background: transparent;
-    }
-    .ch-banner-single img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-    .ch-banner-single a {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
-
-    /* SLIDER WRAPPER (NO CONFLICT) */
-    .ch-slider-wrapper {
-        position: relative;
-        width: 100%;
-        border-radius: 20px;
-        overflow: hidden;
-        margin-bottom: 20px;
-        background: transparent;
-        aspect-ratio: 3.2 / 1;
-    }
-    .ch-slider-track {
-        display: flex;
-        width: 100%;
-        height: 100%;
-        transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        will-change: transform;
-    }
-    .ch-slide {
-        flex: 0 0 100%;
-        min-width: 0;
-        height: 100%;
-    }
-    .ch-slide a {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
-    .ch-slide img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        background: #f0ede8;
-    }
-
-    /* DOTS */
-    .ch-slider-dots {
-        position: absolute;
-        bottom: 12px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 8px;
-        z-index: 10;
-    }
-    .ch-slider-dots .ch-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
-        cursor: pointer;
-        transition: background 0.3s, transform 0.3s;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .ch-slider-dots .ch-dot.active {
-        background: var(--gold, #d4af37);
-        border-color: var(--gold, #d4af37);
-        transform: scale(1.2);
-    }
-
-    /* ── CATEGORIES ── */
-    .category-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 16px;
-        margin: 16px 0 30px;
-    }
-    .category-card {
-        border-radius: var(--radius-sm, 12px);
-        padding: 24px 16px;
-        text-align: center;
-        box-shadow: var(--shadow, 0 12px 40px rgba(0, 0, 0, 0.06));
-        transition: var(--transition, all 0.3s cubic-bezier(0.4, 0, 0.2, 1));
-        text-decoration: none;
-        color: var(--primary, #1a1a1a);
-        border: 1px solid rgba(212, 175, 55, 0.08);
-        position: relative;
-        overflow: hidden;
-    }
-    .category-card:hover {
-        transform: translateY(-6px);
-        box-shadow: var(--shadow-hover, 0 20px 56px rgba(0, 0, 0, 0.10));
-    }
-    .category-card .category-icon,
-    .category-card span {
-        position: relative;
-        z-index: 1;
-    }
-    .category-icon {
-        font-size: 2.8rem;
-        margin-bottom: 8px;
-    }
-    .category-card span {
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    .category-card[data-category="gifts"] { background: linear-gradient(145deg, #fce4ec, #f8bbd0); }
-    .category-card[data-category="gifts"]:hover { background: linear-gradient(145deg, #f8bbd0, #f48fb1); }
-    .category-card[data-category="toys"] { background: linear-gradient(145deg, #e3f2fd, #bbdefb); }
-    .category-card[data-category="toys"]:hover { background: linear-gradient(145deg, #bbdefb, #90caf9); }
-    .category-card[data-category="home-decor"] { background: linear-gradient(145deg, #e8f5e9, #c8e6c9); }
-    .category-card[data-category="home-decor"]:hover { background: linear-gradient(145deg, #c8e6c9, #a5d6a7); }
-    .category-card[data-category="spiritual-decor"] { background: linear-gradient(145deg, #f3e5f5, #e1bee7); }
-    .category-card[data-category="spiritual-decor"]:hover { background: linear-gradient(145deg, #e1bee7, #ce93d8); }
-    .category-card[data-category="mobile"] { background: linear-gradient(145deg, #fff3e0, #ffe0b2); }
-    .category-card[data-category="mobile"]:hover { background: linear-gradient(145deg, #ffe0b2, #ffcc80); }
-
-    body.dark .category-card[data-category="gifts"] { background: linear-gradient(145deg, #4a1a2a, #3a1020); }
-    body.dark .category-card[data-category="gifts"]:hover { background: linear-gradient(145deg, #5a2030, #4a1a2a); }
-    body.dark .category-card[data-category="toys"] { background: linear-gradient(145deg, #1a2a4a, #10203a); }
-    body.dark .category-card[data-category="toys"]:hover { background: linear-gradient(145deg, #20305a, #1a2a4a); }
-    body.dark .category-card[data-category="home-decor"] { background: linear-gradient(145deg, #1a2a1a, #102010); }
-    body.dark .category-card[data-category="home-decor"]:hover { background: linear-gradient(145deg, #203a20, #1a2a1a); }
-    body.dark .category-card[data-category="spiritual-decor"] { background: linear-gradient(145deg, #2a1a3a, #201030); }
-    body.dark .category-card[data-category="spiritual-decor"]:hover { background: linear-gradient(145deg, #3a204a, #2a1a3a); }
-    body.dark .category-card[data-category="mobile"] { background: linear-gradient(145deg, #3a2a1a, #2a1a10); }
-    body.dark .category-card[data-category="mobile"]:hover { background: linear-gradient(145deg, #4a3a2a, #3a2a1a); }
-    body.dark .category-card span { color: #f1f5f9 !important; }
-
-    @media (max-width: 640px) {
-        .ch-banner-single,
-        .ch-slider-wrapper {
-            border-radius: 12px;
-            aspect-ratio: 3.2 / 1;
-        }
-        .ch-slider-dots .ch-dot {
-            width: 8px;
-            height: 8px;
-        }
-        .section-title {
-            font-size: 1.4rem;
-        }
-        .product-grid {
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .category-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        .category-card {
-            padding: 16px 10px;
-        }
-        .category-icon {
-            font-size: 2rem;
-        }
-        .category-card span {
-            font-size: 0.8rem;
-        }
+    /* All existing styles (banner, categories, etc.) remain same */
+    .banner-slider { display:flex; gap:12px; overflow-x:auto; padding:10px 0; margin-bottom:20px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .banner-slider::-webkit-scrollbar { display:none; }
+    .banner-slide { min-width:100%; scroll-snap-align:start; border-radius:20px; overflow:hidden; aspect-ratio:3.2/1; background:var(--gray); }
+    .banner-slide img { width:100%; height:100%; object-fit:cover; display:block; }
+    .category-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:16px; margin:16px 0 30px; }
+    .category-card { border-radius:var(--radius-sm); padding:24px 16px; text-align:center; box-shadow:var(--shadow); transition:var(--transition); text-decoration:none; color:var(--primary); border:1px solid rgba(212,175,55,0.08); position:relative; overflow:hidden; }
+    .category-card:hover { transform:translateY(-6px); box-shadow:var(--shadow-hover); }
+    .category-card .category-icon, .category-card span { position:relative; z-index:1; }
+    .category-icon { font-size:2.8rem; margin-bottom:8px; }
+    .category-card span { font-weight:600; font-size:0.95rem; }
+    .category-card[data-category="gifts"] { background:linear-gradient(145deg,#fce4ec,#f8bbd0); }
+    .category-card[data-category="gifts"]:hover { background:linear-gradient(145deg,#f8bbd0,#f48fb1); }
+    .category-card[data-category="toys"] { background:linear-gradient(145deg,#e3f2fd,#bbdefb); }
+    .category-card[data-category="toys"]:hover { background:linear-gradient(145deg,#bbdefb,#90caf9); }
+    .category-card[data-category="home-decor"] { background:linear-gradient(145deg,#e8f5e9,#c8e6c9); }
+    .category-card[data-category="home-decor"]:hover { background:linear-gradient(145deg,#c8e6c9,#a5d6a7); }
+    .category-card[data-category="spiritual-decor"] { background:linear-gradient(145deg,#f3e5f5,#e1bee7); }
+    .category-card[data-category="spiritual-decor"]:hover { background:linear-gradient(145deg,#e1bee7,#ce93d8); }
+    .category-card[data-category="mobile"] { background:linear-gradient(145deg,#fff3e0,#ffe0b2); }
+    .category-card[data-category="mobile"]:hover { background:linear-gradient(145deg,#ffe0b2,#ffcc80); }
+    body.dark .category-card[data-category="gifts"] { background:linear-gradient(145deg,#4a1a2a,#3a1020); }
+    body.dark .category-card[data-category="gifts"]:hover { background:linear-gradient(145deg,#5a2030,#4a1a2a); }
+    body.dark .category-card[data-category="toys"] { background:linear-gradient(145deg,#1a2a4a,#10203a); }
+    body.dark .category-card[data-category="toys"]:hover { background:linear-gradient(145deg,#20305a,#1a2a4a); }
+    body.dark .category-card[data-category="home-decor"] { background:linear-gradient(145deg,#1a2a1a,#102010); }
+    body.dark .category-card[data-category="home-decor"]:hover { background:linear-gradient(145deg,#203a20,#1a2a1a); }
+    body.dark .category-card[data-category="spiritual-decor"] { background:linear-gradient(145deg,#2a1a3a,#201030); }
+    body.dark .category-card[data-category="spiritual-decor"]:hover { background:linear-gradient(145deg,#3a204a,#2a1a3a); }
+    body.dark .category-card[data-category="mobile"] { background:linear-gradient(145deg,#3a2a1a,#2a1a10); }
+    body.dark .category-card[data-category="mobile"]:hover { background:linear-gradient(145deg,#4a3a2a,#3a2a1a); }
+    body.dark .category-card span { color:#f1f5f9 !important; }
+    @media (max-width:640px) {
+        .banner-slide { aspect-ratio:3.2/1; border-radius:12px; }
+        .section-title { font-size:1.4rem; }
+        .product-grid { grid-template-columns:1fr 1fr; gap:12px; }
+        .category-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+        .category-card { padding:16px 10px; }
+        .category-icon { font-size:2rem; }
+        .category-card span { font-size:0.8rem; }
     }
 </style>
-
-<!-- ─── SLIDER SCRIPT (ONLY IF MORE THAN ONE BANNER) ─── -->
-{% if banners and banners|length > 1 %}
-<script>
-    (function() {
-        'use strict';
-
-        const track = document.getElementById('chSliderTrack');
-        const dots = document.querySelectorAll('.ch-dot');
-        let currentIndex = 0;
-        let totalSlides = dots.length;
-        let autoSlideInterval;
-
-        if (!track || totalSlides === 0) return;
-
-        function goToSlide(index) {
-            if (index < 0) index = totalSlides - 1;
-            if (index >= totalSlides) index = 0;
-            currentIndex = index;
-            track.style.transform = 'translateX(-' + (currentIndex * 100) + '%)';
-            dots.forEach(function(dot, i) {
-                dot.classList.toggle('active', i === currentIndex);
-            });
-        }
-
-        function nextSlide() {
-            goToSlide(currentIndex + 1);
-        }
-
-        // Click on dots
-        dots.forEach(function(dot, index) {
-            dot.addEventListener('click', function() {
-                clearInterval(autoSlideInterval);
-                goToSlide(index);
-                startAutoSlide();
-            });
-        });
-
-        // Touch/Swipe support
-        var startX = 0;
-        var isDragging = false;
-        var wrapper = track.closest('.ch-slider-wrapper');
-
-        if (wrapper) {
-            wrapper.addEventListener('touchstart', function(e) {
-                startX = e.touches[0].clientX;
-                isDragging = true;
-                clearInterval(autoSlideInterval);
-            }, { passive: true });
-
-            wrapper.addEventListener('touchend', function(e) {
-                if (!isDragging) return;
-                var endX = e.changedTouches[0].clientX;
-                var diff = startX - endX;
-                if (Math.abs(diff) > 50) {
-                    if (diff > 0) {
-                        goToSlide(currentIndex + 1);
-                    } else {
-                        goToSlide(currentIndex - 1);
-                    }
-                }
-                isDragging = false;
-                startAutoSlide();
-            }, { passive: true });
-
-            // Pause on hover (desktop)
-            wrapper.addEventListener('mouseenter', function() {
-                clearInterval(autoSlideInterval);
-            });
-            wrapper.addEventListener('mouseleave', function() {
-                startAutoSlide();
-            });
-        }
-
-        function startAutoSlide() {
-            clearInterval(autoSlideInterval);
-            autoSlideInterval = setInterval(nextSlide, 4000);
-        }
-
-        // Start auto-slide
-        startAutoSlide();
-
-        // Ensure first slide is correct
-        goToSlide(0);
-    })();
-</script>
-{% endif %}
-
 {% endblock %}
